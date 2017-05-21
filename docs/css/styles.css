@@ -433,3 +433,13 @@ nav ul li a.current {
 	float: left;
 	width: 50%;
 }
+
+.contact_text{
+	vertical-align: baseline;
+	padding-left: 20px;
+	padding-top: 20px;
+	width: 75%;
+}
+.contact_image{
+	width: 150px;
+}

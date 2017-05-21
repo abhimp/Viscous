@@ -44,7 +44,15 @@
                 <div class="holder_content">
 
                     <!-- <p><h1>Experiment 1</h1></p> -->
-                    <p><h2>Topologies</h2></p>
+                    To evaluate Viscouse, we have perform various experiments on it and compare Viscous with existing protocol like MPTCP, TCP and QUIC. The experimental setups for these experiments are as follows:
+                    <ul>
+                        <li><b>System Configuration:</b> We have used Oracle VitualBox to create virtual machines which have been configured with Mininet kernel to support network interface virtualization. The guest machine configuration is as follows – single core Intel i7-5500U 64bit CPU with a clock speed of 2.40 GHz, RAM: 8GB. The host machine configuration is as follows – Intel Genuine i7-5500U 64bit CPU with a clock speed of 2.40GHz, RAM: 8GB with 250GB Solid State Drive. </li>
+                        <li><b>Mininet:</b> Version 2.2.2 of Mininet kernel have been used to develop our test setup.</li>
+                        <li><b>Kernel:</b> We have used the Linux kernel version 4.1.38.mptcp, which is patched with the MPTCP implementation.</li>
+                        <li><b>MPTCP:</b> MPCTP version we have used in our experiment is 0.91.</li>
+                        <li><b>Operating System:</b> In our virtual machine configurations for test setup, the guest operating system is Ubuntu 14.04.4 LTS, whereas the host operating system is Ubuntu 16.04.1 LTS.
+                        <li><b>Topologies:</b> We have used following topologies for our experiments.
+                    </ul>
                     <center>
                         <figure>
                             <img src="images/experimentalTopology1.svg" width="500" alt="experimentalTopology1"/>
@@ -64,13 +72,32 @@
                     </center>
 
                 </div>
-                <p><h2>Experiments</h2></p>
                 <div class="holder_content">
-                    <p><h3>Experiment 1</p>
-                    <p>Experiment done on Topology 1 without any background traffic</p>
+                    <h2>Experiments</h2>
+                    <p>We have explored the performance of QUIC, TCP, MPTCP and Viscous for large numbers of short-lived flows With various network condition. We have varied the network condition by the number of flows, RTT between the participating hosts and with s without network background flows. Here we summarize results of those experiments. We have done four experiments on the two topologies mentioned above.</p>
+                </div>
+                <div class="holder_content">
+                    <p><h3>Experiment 1 (Performance over Topology-1 without any Background Traffic)</h3></p> 
+                    <p>This experiment has been
+performed over Topology-1. In Topology-1, there are two paths between H1 and H2, however
+H2 has a single interface. Here, we vary the RTT of the two paths from 16ms to 320ms, and
+observe the performance of the four protocols for end-to-end data transport. For every RTT
+setup, we have sent flows using multiple parallel threads to generate multiple simultaneous
+flows. For each thread, we have generated 100 back-to-back flows; and have varied the flow
+duration based on an exponential distribution with mean flow duration of 25 seconds. The
+number of parallel threads those generate the simultaneous flows have been varied from 1 to
+20. Following plot present our results.</p>
                     <center>
+                        <span class="resplot">Goodput</span>
+                        <span class="resplot">Time required to transmit data</span>
                         <figure class="resplot">
                             <img src="images/exp6/goodput_1.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 16ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
+                            <img src="images/exp6/time_elapsed_1.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 16ms</h4>
                             </figcaption>
@@ -82,7 +109,19 @@
                             </figcaption>
                         </figure>
                         <figure class="resplot">
+                            <img src="images/exp6/time_elapsed_5.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 80ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
                             <img src="images/exp6/goodput_10.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 160ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
+                            <img src="images/exp6/time_elapsed_10.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 160ms</h4>
                             </figcaption>
@@ -91,26 +130,6 @@
                             <img src="images/exp6/goodput_20.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 320ms</h4>
-                            </figcaption>
-                        </figure>
-                    </center>
-                    <center>
-                        <figure class="resplot">
-                            <img src="images/exp6/time_elapsed_1.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 16ms</h4>
-                            </figcaption>
-                        </figure>
-                        <figure class="resplot">
-                            <img src="images/exp6/time_elapsed_5.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 80ms</h4>
-                            </figcaption>
-                        </figure>
-                        <figure class="resplot">
-                            <img src="images/exp6/time_elapsed_10.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 160ms</h4>
                             </figcaption>
                         </figure>
                         <figure class="resplot">
@@ -122,11 +141,19 @@
                     </center>
                 </div>
                 <div class="holder_content">
-                    <p><h3>Experiment 2</p>
+                    <p><h3>Experiment 2 (Performance over Topology-1 in the Presence of Background Flows)</h3></p>
                     <p>Experiment done on Topology 1 with background traffic</p>
                     <center>
+                        <span class="resplot">Goodput</span>
+                        <span class="resplot">Time required to transmit data</span>
                         <figure class="resplot">
                             <img src="images/exp7/goodput_1.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 16ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
+                            <img src="images/exp7/time_elapsed_1.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 16ms</h4>
                             </figcaption>
@@ -138,7 +165,19 @@
                             </figcaption>
                         </figure>
                         <figure class="resplot">
+                            <img src="images/exp7/time_elapsed_5.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 80ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
                             <img src="images/exp7/goodput_10.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 160ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
+                            <img src="images/exp7/time_elapsed_10.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 160ms</h4>
                             </figcaption>
@@ -147,26 +186,6 @@
                             <img src="images/exp7/goodput_20.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 320ms</h4>
-                            </figcaption>
-                        </figure>
-                    </center>
-                    <center>
-                        <figure class="resplot">
-                            <img src="images/exp7/time_elapsed_1.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 16ms</h4>
-                            </figcaption>
-                        </figure>
-                        <figure class="resplot">
-                            <img src="images/exp7/time_elapsed_5.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 80ms</h4>
-                            </figcaption>
-                        </figure>
-                        <figure class="resplot">
-                            <img src="images/exp7/time_elapsed_10.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 160ms</h4>
                             </figcaption>
                         </figure>
                         <figure class="resplot">
@@ -178,11 +197,19 @@
                     </center>
                 </div>
                 <div class="holder_content">
-                    <p><h3>Experiment 3</p>
+                    <p><h3>Experiment 3 (Performance over Topology-2 without any Background Traffic)</h3></p>
                     <p>Experiment done on Topology 2 without any background traffic</p>
                     <center>
+                        <span class="resplot">Goodput</span>
+                        <span class="resplot">Time required to transmit data</span>
                         <figure class="resplot">
                             <img src="images/exp10/goodput_1.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 16ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
+                            <img src="images/exp10/time_elapsed_1.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 16ms</h4>
                             </figcaption>
@@ -194,7 +221,19 @@
                             </figcaption>
                         </figure>
                         <figure class="resplot">
+                            <img src="images/exp10/time_elapsed_5.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 80ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
                             <img src="images/exp10/goodput_10.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 160ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
+                            <img src="images/exp10/time_elapsed_10.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 160ms</h4>
                             </figcaption>
@@ -203,26 +242,6 @@
                             <img src="images/exp10/goodput_20.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 320ms</h4>
-                            </figcaption>
-                        </figure>
-                    </center>
-                    <center>
-                        <figure class="resplot">
-                            <img src="images/exp10/time_elapsed_1.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 16ms</h4>
-                            </figcaption>
-                        </figure>
-                        <figure class="resplot">
-                            <img src="images/exp10/time_elapsed_5.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 80ms</h4>
-                            </figcaption>
-                        </figure>
-                        <figure class="resplot">
-                            <img src="images/exp10/time_elapsed_10.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 160ms</h4>
                             </figcaption>
                         </figure>
                         <figure class="resplot">
@@ -234,11 +253,19 @@
                     </center>
                 </div>
                 <div class="holder_content">
-                    <p><h3>Experiment 4</p>
+                    <p><h3>Experiment 4 (Performance over Topology-2 in the Presence of Background Flows)</h3></p>
                     <p>Experiment done on Topology 2 with background traffic</p>
                     <center>
+                        <span class="resplot">Goodput</span>
+                        <span class="resplot">Time required to transmit data</span>
                         <figure class="resplot">
                             <img src="images/exp11/goodput_1.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 16ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
+                            <img src="images/exp11/time_elapsed_1.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 16ms</h4>
                             </figcaption>
@@ -250,7 +277,19 @@
                             </figcaption>
                         </figure>
                         <figure class="resplot">
+                            <img src="images/exp11/time_elapsed_5.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 80ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
                             <img src="images/exp11/goodput_10.svg" width="450" alt="Goodput: RTT=16"/>
+                            <figcaption>
+                            <h4>RTT = 160ms</h4>
+                            </figcaption>
+                        </figure>
+                        <figure class="resplot">
+                            <img src="images/exp11/time_elapsed_10.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
                             <h4>RTT = 160ms</h4>
                             </figcaption>
@@ -261,26 +300,6 @@
                             <h4>RTT = 320ms</h4>
                             </figcaption>
                         </figure>
-                    </center>
-                    <center>
-                        <figure class="resplot">
-                            <img src="images/exp11/time_elapsed_1.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 16ms</h4>
-                            </figcaption>
-                        </figure>
-                        <figure class="resplot">
-                            <img src="images/exp11/time_elapsed_5.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 80ms</h4>
-                            </figcaption>
-                        </figure>
-                        <figure class="resplot">
-                            <img src="images/exp11/time_elapsed_10.svg" width="450" alt="Goodput: RTT=16"/>
-                            <figcaption>
-                            <h4>RTT = 160ms</h4>
-                            </figcaption>
-                        </figure>
                         <figure class="resplot">
                             <img src="images/exp11/time_elapsed_20.svg" width="450" alt="Goodput: RTT=16"/>
                             <figcaption>
@@ -289,45 +308,6 @@
                         </figure>
                     </center>
                 </div>
-                <!-- end holder -->
-                <!-- <div class="holder_content">
-                    <h3>News Articles</h3>
-                    <p>(Click on the images* for the article)</p>
-                    <section class="group1">         
-                        <h3>Chattisgarh</h3>
-                        <a class="photo_hover3" href="http://timesofindia.indiatimes.com/city/raipur/22-injured-in-Chhattisgarh-bus-accident/articleshow/49804415.cms" target = "_blank"><img src="images/acc1.jpg" width="260" height="214" alt="crowd"/></a>
-                    </section>
-                    <section class="group1">
-                        <h3>Kerala</h3>
-                        <a class="photo_hover3" href="http://www.thehindu.com/news/national/kerala/5-killed-as-buses-collide-near-chadayamangalam/article4916970.ece" target = "_blank"><img src="images/acc2.jpg" width="260" height="214" alt="crowd"/></a>
-                    </section>
-                    <section class="group1">
-                        <h3>Tamil Nadu</h3>
-                        <a class="photo_hover3" href="http://www.ndtv.com/tamil-nadu-news/36-passengers-injured-as-2-buses-collide-head-on-in-tamil-nadu-1235600" target = "_blank"><img src="images/acc3.jpg" width="260" height="214" alt="crowd"/></a>
-                    </section>
-                    <section class="group1">
-                        <h3>Kerala</h3>
-                        <a class="photo_hover3" href="http://www.newindianexpress.com/cities/kochi/article471873.ece" target = "_blank"><img src="images/acc4.jpg" width="260" height="214" alt="crowd"/></a>
-                    </section>
-                    <section class="group1">
-                        <h3>Andhra Pradesh</h3>
-                        <a class="photo_hover3" href="http://www.ndtv.com/others-news/9-killed-8-injured-as-bus-collides-with-autorickshaw-in-andra-pradesh-783377" target = "_blank"><img src="images/acc5.jpg" width="260" height="214" alt="crowd"/></a>
-                    </section>
-                    <section class="group1">
-                        <h3>Delhi</h3>
-                        <a class="photo_hover3" href="http://www.ndtv.com/delhi-news/man-disabled-in-road-accident-gets-over-rs-26-lakh-compensation-1219930" target = "_blank"><img src="images/acc6.jpg" width="260" height="214" alt="crowd"/></a>
-                    </section>
-
-                </div>
-                <div class="holder_content">
-                    <section class="group1">
-                        <h3>An Interesting Data</h3>
-                        <a class="photo_hover3" href="https://data.gov.in/catalog/number-buses-owned-public-and-private-sectors-india" target="_blank"><img src="images/datagov.jpg" width="800" height="300" alt="data"/></a>
-                    </section>
-                </div>
-
-                <p id="p02">*Some of the images in the news article are just representative and not related to the article.</p> -->
-
             </div>
         </div>
     </body>
