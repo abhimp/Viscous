@@ -24,7 +24,7 @@
  *      Author: abhijit
  */
 
-#include "ServerConnection.hpp"
+#include "ServerConnection.hh"
 #include "PacketPool.h"
 appSInt ServerConnection::sendPacketTo(appInt id, Packet *pkt, struct sockaddr_in *dest_addr, socklen_t addrlen) {
 	connection->sendPacketTo(id, pkt, dest_addr, addrlen);

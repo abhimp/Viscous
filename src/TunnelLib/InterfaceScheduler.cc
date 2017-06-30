@@ -25,7 +25,7 @@
  */
 
 #include "InterfaceScheduler.h"
-#include "CubicChannelHandler.hpp"
+#include "CubicChannelHandler.hh"
 #include "BasicChannelHandler.h"
 #include "SackNewRenoChannelHandler.h"
 

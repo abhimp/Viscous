@@ -18,7 +18,7 @@
 
 
 /*
- * StopNWait.hpp
+ * StopNWait.hh
  *
  *  Created on: 13-Aug-2016
  *      Author: abhijit
@@ -26,8 +26,8 @@
 
 #ifndef SRC_TUNNELLIB_ARQ_STOPNWAIT_HPP_
 #define SRC_TUNNELLIB_ARQ_STOPNWAIT_HPP_
-#include "../../util/CircularBuffer.hpp"
-#include "../CommonHeaders.hpp"
+#include "../../util/CircularBuffer.hh"
+#include "../CommonHeaders.hh"
 #ifdef __EXTREAME_DEBUG_COND
 class debugData{
 public:

@@ -22,11 +22,11 @@
  * Author	  : Sourav Bhattacharjee
  *
  */
-#include "CongestionHandler.hpp"
-#include "../../util/LinuxMath.hpp"
+#include "CongestionHandler.hh"
+#include "../../util/LinuxMath.hh"
 #include <math.h>	/* cbrt */
-#include "CubicChannelHandler.hpp"
-#include "CommonHeaders.hpp"
+#include "CubicChannelHandler.hh"
+#include "CommonHeaders.hh"
 /*Add div64.h incase cube root does not work.*/
 
 using namespace std;

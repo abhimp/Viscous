@@ -18,7 +18,7 @@
 
 
 /*
- * Conection.hpp
+ * Conection.hh
  *
  *  Created on: 07-Aug-2016
  *      Author: abhijit
@@ -27,7 +27,7 @@
 #ifndef SRC_TUNNELLIB_CONNECTION_HPP_
 #define SRC_TUNNELLIB_CONNECTION_HPP_
 
-#include "CommonHeaders.hpp"
+#include "CommonHeaders.hh"
 #include <common.h>
 #include <cstring>
 #include "../../libev/ev++.h"

@@ -27,9 +27,9 @@
 #ifndef SRC_TUNNELLIB_PACKETEVENTHANDLER_H_
 #define SRC_TUNNELLIB_PACKETEVENTHANDLER_H_
 
-#include "CommonHeaders.hpp"
-#include "../../util/ConditonalWait.hpp"
-#include "Connection.hpp"
+#include "CommonHeaders.hh"
+#include "../../util/ConditonalWait.hh"
+#include "Connection.hh"
 #include <mutex>
 #include <appThread.h>
 

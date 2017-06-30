@@ -29,7 +29,7 @@
 #include <map>
 #include "ARQ/Streamer.h"
 
-#include "CommonHeaders.hpp"
+#include "CommonHeaders.hh"
 
 typedef appInt16 MuxHdr;
 

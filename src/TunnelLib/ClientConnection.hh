@@ -18,7 +18,7 @@
 
 
 /*
- * ClientConnection.hpp
+ * ClientConnection.hh
  *
  *  Created on: 07-Aug-2016
  *      Author: abhijit
@@ -27,12 +27,12 @@
 #ifndef SRC_TUNNELLIB_CLIENTCONNECTION_HPP_
 #define SRC_TUNNELLIB_CLIENTCONNECTION_HPP_
 
-#include "Connection.hpp"
+#include "Connection.hh"
 #include <list>
 #include <appThread.h>
-#include "multiplexer.hpp"
+#include "multiplexer.hh"
 #include "InterfaceScheduler.h"
-#include "../../util/ConditonalWait.hpp"
+#include "../../util/ConditonalWait.hh"
 #include "PacketEventHandler.h"
 #include <mutex>
 

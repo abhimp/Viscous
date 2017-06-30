@@ -42,11 +42,11 @@
 #include <common.h>
 #include <map>
 
-#include "../src/TunnelLib/CommonHeaders.hpp"
+#include "../src/TunnelLib/CommonHeaders.hh"
 #include "../src/util/Macros.h"
 #include "../src/TunnelLib/ARQ/Streamer.h"
-#include "../src/TunnelLib/ServerConnection.hpp"
-#include "../src/TunnelLib/ClientConnection.hpp"
+#include "../src/TunnelLib/ServerConnection.hh"
+#include "../src/TunnelLib/ClientConnection.hh"
 #include <appThread.h>
 
 #define QUEUE_NUMBER 1

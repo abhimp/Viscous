@@ -18,7 +18,7 @@
 
 
 /*
- * CircularBuffer.hpp
+ * CircularBuffer.hh
  *
  *  Created on: 13-Aug-2016
  *      Author: abhijit
@@ -30,7 +30,7 @@
 #include <algorithm> // for std::min
 #include <cstring>
 #include <mutex>
-#include "ConditonalWait.hpp"
+#include "ConditonalWait.hh"
 //#include <pthread.h>
 
 template<typename T>

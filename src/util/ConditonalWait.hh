@@ -18,7 +18,7 @@
 
 
 /*
- * ConditonalWait.hpp
+ * ConditonalWait.hh
  *
  *  Created on: 20-Feb-2017
  *      Author: abhijit

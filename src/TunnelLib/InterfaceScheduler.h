@@ -27,10 +27,10 @@
 #ifndef SRC_TUNNELLIB_INTERFACESCHEDULER_H_
 #define SRC_TUNNELLIB_INTERFACESCHEDULER_H_
 #include <set>
-#include "CommonHeaders.hpp"
-#include "../../util/CircularBuffer.hpp"
-#include "../../util/ConditonalWait.hpp"
-#include "ChannelHandler.hpp"
+#include "CommonHeaders.hh"
+#include "../../util/CircularBuffer.hh"
+#include "../../util/ConditonalWait.hh"
+#include "ChannelHandler.hh"
 
 #define BASIC_CHANNEL_HANDLER_REMOTE_ADDRESS_COUNT 16
 #define BASIC_CHANNEL_HANDLER_CHANNEL_COUNT 256

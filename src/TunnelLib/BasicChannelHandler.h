@@ -27,10 +27,10 @@
 #ifndef SRC_TUNNELLIB_BASICCHANNELHANDLER_H_
 #define SRC_TUNNELLIB_BASICCHANNELHANDLER_H_
 
-#include "ChannelHandler.hpp"
-#include "../util/BitField.hpp"
+#include "ChannelHandler.hh"
+#include "../util/BitField.hh"
 #include <set>
-#include "../../util/ConditonalWait.hpp"
+#include "../../util/ConditonalWait.hh"
 
 #define APP_MAX(x,y) ((x) > (y) ? (x) : (y))
 #define APP_ABS(x) ((x) < 0 ? (-1)*(x) : (x))

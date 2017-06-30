@@ -23,7 +23,7 @@
  *  Created on: 08-Dec-2016
  *      Author: abhijit
  */
-#include "../InterfaceController/ValueType.hpp"
+#include "../InterfaceController/ValueType.hh"
 #include <netinet/ether.h>
 #include <arpa/inet.h>
 

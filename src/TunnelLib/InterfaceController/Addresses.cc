@@ -25,7 +25,7 @@
  */
 
 #include <cstring>
-#include "Addresses.hpp"
+#include "Addresses.hh"
 
 bool RemoteAddr::operator<(const RemoteAddr &rAddr) const
 {

@@ -27,7 +27,7 @@
 #include "TcpMultiplexingTrafficGenerator.h"
 #include <network.h>
 #include <random>
-#include "../src/util/AppStack.hpp"
+#include "../src/util/AppStack.hh"
 #include "test_distribution.h"
 #include "../src/util/ThreadPool.h"
 #include  <appThread.h>

@@ -27,7 +27,7 @@
 #include "SendingSocket.h"
 #include <iostream>
 #include <common.h>
-#include "../CommonHeaders.hpp"
+#include "../CommonHeaders.hh"
 
 namespace Interface {
 

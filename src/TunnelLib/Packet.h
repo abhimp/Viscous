@@ -29,7 +29,7 @@
 
 #include <common.h>
 #include <arpa/inet.h>
-#include "../../util/AppStack.hpp"
+#include "../../util/AppStack.hh"
 
 #define EMPTY_FINGER_PRINT 0
 

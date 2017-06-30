@@ -26,7 +26,7 @@
 
 #ifndef SRC_UTIL_APPPOOL_H_
 #define SRC_UTIL_APPPOOL_H_
-#include "AppStack.hpp"
+#include "AppStack.hh"
 #define PACKETS_PER_POOL 128
 
 #define NO_POOL

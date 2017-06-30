@@ -18,7 +18,7 @@
 
 
 /*
- * DynamicArray.hpp
+ * DynamicArray.hh
  *
  *  Created on: 29-Jan-2017
  *      Author: abhijit

@@ -18,7 +18,7 @@
 
 
 /*
- * log.hpp
+ * log.hh
  *
  *  Created on: 17-Jan-2017
  *      Author: sourav

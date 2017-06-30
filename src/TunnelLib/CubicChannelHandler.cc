@@ -24,9 +24,9 @@
  *      Author: sourav
  */
 
-#include "CubicChannelHandler.hpp"
-#include "CongestionHandler.hpp"
-#include "CommonHeaders.hpp"
+#include "CubicChannelHandler.hh"
+#include "CongestionHandler.hh"
+#include "CommonHeaders.hh"
 #include "PacketPool.h"
 #include <math.h>
 //#include <linux/mm.h>
@@ -35,8 +35,8 @@
 //#include <linux/jiffies.h>
 //#include <asm/param.h>
 //#include <asm-generic/div64.h>
-#include "../util/LinuxMath.hpp"
-#include "log.hpp"
+#include "../util/LinuxMath.hh"
+#include "log.hh"
 
 
 #define HZ 1000

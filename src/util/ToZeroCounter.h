@@ -26,7 +26,7 @@
 
 #ifndef SRC_UTIL_TOZEROCOUNTER_H_
 #define SRC_UTIL_TOZEROCOUNTER_H_
-#include "ConditonalWait.hpp"
+#include "ConditonalWait.hh"
 #include <mutex>
 
 template<typename T>

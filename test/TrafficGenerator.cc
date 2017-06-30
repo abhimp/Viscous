@@ -25,8 +25,8 @@
  *      Author: abhijit
  */
 
-#include "../src/TunnelLib/ServerConnection.hpp"
-#include "../src/TunnelLib/ClientConnection.hpp"
+#include "../src/TunnelLib/ServerConnection.hh"
+#include "../src/TunnelLib/ClientConnection.hh"
 #include <appThread.h>
 #include <sstream>
 #include <fstream>

@@ -18,7 +18,7 @@
 
 
 /*
- * BitField.hpp
+ * BitField.hh
  *
  *  Created on: 15-Feb-2017
  *      Author: abhijit

@@ -42,8 +42,8 @@
 #include <ifaddrs.h>
 #include <common.h>
 
-#include "ValueType.hpp"
-#include "Addresses.hpp"
+#include "ValueType.hh"
+#include "Addresses.hh"
 
 namespace SearchMac{
 const unsigned int BUFFER_SIZE = 4096;

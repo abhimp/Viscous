@@ -18,7 +18,7 @@
 
 
 /*
- * BinaryHeap.hpp
+ * BinaryHeap.hh
  *
  *  Created on: 13-Feb-2017
  *      Author: abhijit

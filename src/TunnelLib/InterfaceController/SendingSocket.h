@@ -45,8 +45,8 @@
 #include <linux/if_packet.h>  // struct sockaddr_ll (see man 7 packet)
 #include <net/ethernet.h>
 
-#include "../../util/ConditonalWait.hpp"
-#include "../CommonHeaders.hpp"
+#include "../../util/ConditonalWait.hh"
+#include "../CommonHeaders.hh"
 #include <appThread.h>
 #include "../PacketPool.h"
 

@@ -32,10 +32,10 @@
 
 
 #include <common.h>
-#include "Addresses.hpp"
+#include "Addresses.hh"
 #include "../Packet.h"
 #include <appThread.h>
-#include "../../util/ConditonalWait.hpp"
+#include "../../util/ConditonalWait.hh"
 #include <mutex>
 #include "../PacketPool.h"
 #include "SendingSocket.h"

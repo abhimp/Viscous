@@ -18,7 +18,7 @@
 
 
 /*
- * CubicChannelHandler.hpp
+ * CubicChannelHandler.hh
  *
  *  Created on: 25-Dec-2016
  *      Author: sourav
@@ -27,8 +27,8 @@
 #ifndef SRC_TUNNELLIB_CUBICCHANNELHANDLER_HPP_
 #define SRC_TUNNELLIB_CUBICCHANNELHANDLER_HPP_
 
-#include "ChannelHandler.hpp"
-#include "CongestionHandler.hpp"
+#include "ChannelHandler.hh"
+#include "CongestionHandler.hh"
 
 /*For Congestion Controller*/
 #define BICTCP_BETA_SCALE	1024

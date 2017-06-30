@@ -18,7 +18,7 @@
 
 
 /*
- * ServerConnectionClientDetail.hpp
+ * ServerConnectionClientDetail.hh
  *
  *  Created on: 14-Aug-2016
  *      Author: abhijit
@@ -27,8 +27,8 @@
 #ifndef SRC_TUNNELLIB_SERVERCONNECTIONCLIENTDETAIL_HPP_
 #define SRC_TUNNELLIB_SERVERCONNECTIONCLIENTDETAIL_HPP_
 
-#include "Connection.hpp"
-#include "multiplexer.hpp"
+#include "Connection.hh"
+#include "multiplexer.hh"
 #include "InterfaceScheduler.h"
 #include <appThread.h>
 #include <set>

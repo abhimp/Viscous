@@ -18,7 +18,7 @@
 
 
 /*
- * StreamHandler.hpp
+ * StreamHandler.hh
  *
  *  Created on: 12-Dec-2016
  *      Author: abhijit
@@ -26,10 +26,10 @@
 
 #ifndef SRC_TUNNELLIB_ARQ_STREAMHANDLER_HPP_
 #define SRC_TUNNELLIB_ARQ_STREAMHANDLER_HPP_
-#include "../CommonHeaders.hpp"
-#include "../../util/CircularBuffer.hpp"
-#include "../../util/BitField.hpp"
-#include "../../util/ConditonalWait.hpp"
+#include "../CommonHeaders.hh"
+#include "../../util/CircularBuffer.hh"
+#include "../../util/BitField.hh"
+#include "../../util/ConditonalWait.hh"
 #include <queue>
 #include "../../util/ThreadPool.h"
 #include "../../util/ToZeroCounter.h"

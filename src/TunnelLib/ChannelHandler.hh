@@ -18,7 +18,7 @@
 
 
 /*
- * InterfaceHnadler.hpp
+ * InterfaceHnadler.hh
  *
  *  Created on: 06-Dec-2016
  *      Author: abhijit
@@ -27,9 +27,9 @@
 #ifndef SRC_TUNNELLIB_CHANNELHANDLER_HPP_
 #define SRC_TUNNELLIB_CHANNELHANDLER_HPP_
 #include <common.h>
-#include "CommonHeaders.hpp"
-#include "Connection.hpp"
-#include "InterfaceController/SearchMac.hpp"
+#include "CommonHeaders.hh"
+#include "Connection.hh"
+#include "InterfaceController/SearchMac.hh"
 #include "InterfaceController/SendThroughInterface.h"
 
 class ChannelHandler : public TimeoutObserver, public PacketFlags, public AppTimeCla{

@@ -28,7 +28,7 @@
 
 #include <sstream>
 #include <iostream>
-#include "SearchMac.hpp"
+#include "SearchMac.hh"
 #include "../PacketPool.h"
 
 

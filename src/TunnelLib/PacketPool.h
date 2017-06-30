@@ -28,7 +28,7 @@
 #define SRC_TUNNELLIB_PACKETPOOL_H_
 #include <stack>
 #include <cstdlib>
-#include "../../util/AppStack.hpp"
+#include "../../util/AppStack.hh"
 #include "Packet.h"
 #include <mutex>
 #include "../util/AppPool.h"

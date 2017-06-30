@@ -33,7 +33,7 @@
 #include "test_distribution.h"
 #include "../src/util/ThreadPool.h"
 #include <netinet/tcp.h>
-#include "../src/TunnelLib/CommonHeaders.hpp"
+#include "../src/TunnelLib/CommonHeaders.hh"
 
 namespace TcpTrafficGeneratorReciever{
 

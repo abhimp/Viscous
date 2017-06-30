@@ -17,12 +17,12 @@
  */
 
 
-#include "SearchMac.hpp"
+#include "SearchMac.hh"
 
 #include <cstdlib>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include "ValueType.hpp"
+#include "ValueType.hh"
 #include <dirent.h>
 namespace SearchMac{
 

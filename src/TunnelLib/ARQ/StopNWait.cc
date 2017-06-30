@@ -24,7 +24,7 @@
  *      Author: abhijit
  */
 
-#include "StopNWait.hpp"
+#include "StopNWait.hh"
 #include <iostream>
 
 StopNWait::StopNWait(BaseReliableObj *parent, appInt16 flowId):

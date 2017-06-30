@@ -23,8 +23,8 @@
  *  Created on: 14-Aug-2016
  *      Author: abhijit
  */
-#include "ServerConnectionClientDetail.hpp"
-#include "ServerConnection.hpp"
+#include "ServerConnectionClientDetail.hh"
+#include "ServerConnection.hh"
 #include "PacketPool.h"
 
 //===================

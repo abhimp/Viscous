@@ -25,12 +25,12 @@
  */
 
 
-#include "multiplexer.hpp"
+#include "multiplexer.hh"
 
-#include "ARQ/StopNWait.hpp"
-#include "ARQ/StreamHandler.hpp"
+#include "ARQ/StopNWait.hh"
+#include "ARQ/StreamHandler.hh"
 
-#include "CommonHeaders.hpp"
+#include "CommonHeaders.hh"
 #include "PacketPool.h"
 #include <iostream>
 

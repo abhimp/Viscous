@@ -18,7 +18,7 @@
 
 
 /*
- * ServerConnection.hpp
+ * ServerConnection.hh
  *
  *  Created on: 07-Aug-2016
  *      Author: abhijit
@@ -27,12 +27,12 @@
 #ifndef SRC_TUNNELLIB_SERVERCONNECTION_HPP_
 #define SRC_TUNNELLIB_SERVERCONNECTION_HPP_
 
-#include "Connection.hpp"
-#include "multiplexer.hpp"
+#include "Connection.hh"
+#include "multiplexer.hh"
 #include <appThread.h>
 #include <set>
 #include <map>
-#include "ServerConnectionClientDetail.hpp"
+#include "ServerConnectionClientDetail.hh"
 #include "PacketEventHandler.h"
 
 

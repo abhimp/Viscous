@@ -28,7 +28,7 @@
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
-#include "log.hpp"
+#include "log.hh"
 #include <mutex>
 
 #define DEBUG

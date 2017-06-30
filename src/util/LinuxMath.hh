@@ -18,7 +18,7 @@
 
 
 /*
- * LinuxMath.hpp
+ * LinuxMath.hh
  *
  *  Created on: 25-Dec-2016
  *      Author: abhijit
