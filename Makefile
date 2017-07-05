@@ -108,36 +108,12 @@ SUBDIRS := $(patsubst %,$(OUTDIR)/%,$(_SUBDIRS))
 
 #=========================================
 
-all: $(SUBDIRS) $(OUTDIR)/MultiPathUdp
+all: $(OUTDIR)/MultiPathUdp
 	@echo DONE
 
 
 clean:
 	rm -rf ${OUTDIR}
-
-#========================================
-$(OUTDIR)/src/common_lib:
-	mkdir -p ${OUTDIR}/src/common_lib
-
-$(OUTDIR)/src/common_lib/header:
-	mkdir -p ${OUTDIR}/src/common_lib/header
-
-$(OUTDIR)/src/TunnelLib/ARQ:
-	mkdir -p ${OUTDIR}/src/TunnelLib/ARQ
-
-$(OUTDIR)/src/TunnelLib/InterfaceController:
-	mkdir -p ${OUTDIR}/src/TunnelLib/InterfaceController
-
-$(OUTDIR)/src/TunnelLib:
-	mkdir -p ${OUTDIR}/src/TunnelLib
-
-$(OUTDIR)/src/util:
-	mkdir -p ${OUTDIR}/src/util
-
-$(OUTDIR)/test:
-	mkdir -p ${OUTDIR}/test
-
-#======================================
 
 $(OUTDIR)/MultiPathUdp: $(OBJS)
 	@echo 'Building target: $@'
@@ -147,6 +123,7 @@ $(OUTDIR)/MultiPathUdp: $(OBJS)
 	@echo ' '
 
 $(OUTDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C Compiler'
 	$(CC) -c $(CFLAGS) $(DEBUG_FLAG) -o $@ $^
@@ -154,6 +131,7 @@ $(OUTDIR)/%.o: %.c
 	@echo ' '
 
 $(OUTDIR)/%.o: %.cc
+	@mkdir -p $(dir $@)
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
 	$(CPP) -c $(CCFLAGS) $(DEBUG_FLAG) -o $@ $^
@@ -161,6 +139,7 @@ $(OUTDIR)/%.o: %.cc
 	@echo ' '
 
 $(OUTDIR)/src/util/libev.o: src/util/libev.cc
+	@mkdir -p $(dir $@)
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
 	g++ -std=c++0x -Wno-comment -Wno-sign-compare -Wno-unused-value -Wno-parentheses -DEV_STANDALONE=1 -I"src/common_lib/header" $(DEBUG_FLAG) -Wall -c -fmessage-length=0 -pthread -o "$@" "$<"
