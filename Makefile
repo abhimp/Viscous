@@ -63,7 +63,6 @@ _TUNNEL_LIB_OBJ := \
                 src/TunnelLib/BasicChannelHandler.o \
                 src/TunnelLib/PacketPool.o \
                 src/TunnelLib/CommonHeaderImpl.o \
-                src/TunnelLib/CubicChannelHandler.o \
                 src/TunnelLib/InterfaceScheduler.o \
                 src/TunnelLib/ChannelHandler.o \
                 src/TunnelLib/Packet.o \
@@ -75,6 +74,8 @@ _TUNNEL_LIB_OBJ := \
                 src/TunnelLib/ServerConnection.o \
                 $(_ARQ_OBJ) \
                 $(_INTERFACE_CONTROLLER_OBJ)
+
+#                src/TunnelLib/CubicChannelHandler.o 
 
 _UTIL_OBJ       := \
                 src/util/ThreadPool.o \
@@ -114,46 +115,60 @@ TEST_OBJ        := $(patsubst %,$(OUTDIR)/%,$(_TEST_OBJ))
 OBJS            := $(patsubst %,$(OUTDIR)/%,$(_OBJS))
 SUBDIRS         := $(patsubst %,$(OUTDIR)/%,$(_SUBDIRS))
 
+COMMON_LIB_DEP  := $(patsubst %.o,%.d,$(COMMON_LIB_OBJ))
+UTIL_DEP        := $(patsubst %.o,%.d,$(UTIL_OBJ))
+TUNNEL_LIB_DEP  := $(patsubst %.o,%.d,$(TUNNEL_LIB_OBJ))
+TEST_DEP        := $(patsubst %.o,%.d,$(TEST_OBJ))
+DEPS            := $(patsubst %.o,%.d,$(OBJS))
+
+DEPT			:= $(patsubst %.o,%.t,$(OBJS))
+
 #=========================================
+ifneq ($(MAKECMDGOALS),clean)
+-include $(DEPS)
+endif
 
 all: $(OUTDIR)/ViscousTest
-	@echo DONE
-
 
 clean:
 	rm -rf ${OUTDIR}
 
 $(OUTDIR)/libViscous.a: $(COMMON_LIB_OBJ) $(UTIL_OBJ) $(TUNNEL_LIB_OBJ)
 	@echo 'archiving'
-	$(AR) -rv $@ $^
+	@$(AR) -rv $@ $^
 
 $(OUTDIR)/ViscousTest: $(OUTDIR)/libViscous.a $(TEST_OBJ)
-	@echo 'Building target: $@'
-	@echo 'Invoking: GCC C++ Linker'
-	$(LINK) -pthread -o $@ $(TEST_OBJ) -L $(OUTDIR) $(LIBS) -lViscous
-	@echo 'Finished building target: $@'
-	@echo ' '
+	@echo "LD \t$@"
+	@$(LINK) -pthread -o $@ $(TEST_OBJ) -L $(OUTDIR) $(LIBS) -lViscous
 
-$(OUTDIR)/%.o: %.c
+$(OUTDIR)/%.o: %.c 
 	@mkdir -p $(dir $@)
-	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C Compiler'
-	$(CC) -c $(CFLAGS) $(DEBUG_FLAG) -o $@ $^
-	@echo 'Finished building: $<'
-	@echo ' '
+	@echo "CC \t$^"
+	@$(CC) $(CFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$(patsubst %.o,%.d,$@)" -MF"$(patsubst %.o,%.d,$@)" $^
+	@$(CC) -c $(CFLAGS) $(DEBUG_FLAG) -o $@ $<
 
-$(OUTDIR)/%.o: %.cc
+$(OUTDIR)/%.o: %.cc 
 	@mkdir -p $(dir $@)
-	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C++ Compiler'
-	$(CPP) -c $(CCFLAGS) $(DEBUG_FLAG) -o $@ $^
-	@echo 'Finished building: $<'
-	@echo ' '
+	@echo "CPP \t$^"
+	@$(CPP) $(CCFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$(patsubst %.o,%.d,$@)" -MF"$(patsubst %.o,%.d,$@)" $^
+	@$(CPP) -c $(CCFLAGS) $(DEBUG_FLAG) -o $@ $<
 
 $(OUTDIR)/src/util/libev.o: src/util/libev.cc
 	@mkdir -p $(dir $@)
-	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C++ Compiler'
-	$(CPP) -std=c++0x -Wno-comment -Wno-sign-compare -Wno-unused-value -Wno-parentheses -DEV_STANDALONE=1 -I"src/common_lib/header" $(DEBUG_FLAG) -Wall -c -fmessage-length=0 -pthread -o "$@" "$<"
-	@echo 'Finished building: $<'
-	@echo ' '
+	@echo "CPP \t$^"
+	@$(CPP) $(CCFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$(patsubst %.o,%.d,$@)" -MF"$(patsubst %.o,%.d,$@)" $^
+	@$(CPP) -std=c++0x -Wno-comment -Wno-sign-compare -Wno-unused-value -Wno-parentheses -DEV_STANDALONE=1 -I"src/common_lib/header" $(DEBUG_FLAG) -Wall -c -fmessage-length=0 -pthread -o "$@" "$<"
+
+#=======Dependancy====
+
+# outdep: $(DEPS)
+
+# $(OUTDIR)/%.d: %.c
+# 	@mkdir -p $(dir $@)
+# 	@echo "DEPS \t$^"
+# 	@$(CC) $(CFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$@" -MF"$@" $^
+
+# $(OUTDIR)/%.d: %.cc
+# 	@mkdir -p $(dir $@)
+# 	@echo "DEPS \t$^"
+# 	@$(CPP) $(CCFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$@" -MF"$@" $^
