@@ -24,12 +24,12 @@
  *      Author: abhijit
  */
 
-#ifndef TEST_TESTTHREADPOOL_H_
-#define TEST_TESTTHREADPOOL_H_
+#ifndef EVALUATION_TESTTHREADPOOL_H_
+#define EVALUATION_TESTTHREADPOOL_H_
 
 
 int threadTest();
 
 
 
-#endif /* TEST_TESTTHREADPOOL_H_ */
+#endif /* EVALUATION_TESTTHREADPOOL_H_ */

@@ -18,20 +18,27 @@
 
 
 /*
- * TcpMultiplexingTrafficGenerator.h
+ * TcpTrafficGenerator.h
  *
- *  Created on: 14-Apr-2017
+ *  Created on: 17-Mar-2017
  *      Author: abhijit
  */
 
-#ifndef TEST_TCPMULTIPLEXINGTRAFFICGENERATOR_H_
-#define TEST_TCPMULTIPLEXINGTRAFFICGENERATOR_H_
+#ifndef EVALUATION_TCPTRAFFICGENERATOR_H_
+#define EVALUATION_TCPTRAFFICGENERATOR_H_
+
 #include <common.h>
 
-namespace TcpMultiplexing {
-namespace Sender {
-void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt numConn);
+namespace TcpTrafficGeneratorReciever{
+void startServer(appInt localPort, appByte *fylePathPrefix);
 }
-} /* namespace TcpMultiplexing */
 
-#endif /* TEST_TCPMULTIPLEXINGTRAFFICGENERATOR_H_ */
+namespace TcpTrafficGeneratorSender{
+void startClient(appByte *serverIp, appInt serverPort, appByte *fpath);
+}
+
+namespace TcpTrafficGeneratorSender2{
+    void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt numConn);
+}
+
+#endif /* EVALUATION_TCPTRAFFICGENERATOR_H_ */

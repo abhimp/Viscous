@@ -18,27 +18,25 @@
 
 
 /*
- * TcpTrafficGenerator.h
+ * TrafficGenerator.h
  *
  *  Created on: 17-Mar-2017
  *      Author: abhijit
  */
 
-#ifndef TEST_TCPTRAFFICGENERATOR_H_
-#define TEST_TCPTRAFFICGENERATOR_H_
-
+#ifndef EVALUATION_TRAFFICGENERATOR_H_
+#define EVALUATION_TRAFFICGENERATOR_H_
 #include <common.h>
-
-namespace TcpTrafficGeneratorReciever{
-void startServer(appInt localPort, appByte *fylePathPrefix);
+namespace TrafficGeneratorServer{
+void startServer(appInt localPort, appByte *fylePathPrefix = NULL);
 }
 
-namespace TcpTrafficGeneratorSender{
+
+namespace TrafficGeneratorClient{
 void startClient(appByte *serverIp, appInt serverPort, appByte *fpath);
 }
 
-namespace TcpTrafficGeneratorSender2{
-    void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt numConn);
+namespace TrafficGeneratorClient2{
+void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt numPackets);
 }
-
-#endif /* TEST_TCPTRAFFICGENERATOR_H_ */
+#endif /* EVALUATION_TRAFFICGENERATOR_H_ */

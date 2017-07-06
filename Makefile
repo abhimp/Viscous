@@ -83,14 +83,14 @@ _UTIL_OBJ       := \
                 src/util/libev.o \
                 src/util/LinuxMath.o 
 
-_TEST_OBJ       := \
-                test/testThreadPool.o \
-                test/Main.o \
-                test/PacketHijacking.o \
-                test/TrafficGenerator.o \
-                test/test_distribution.o \
-                test/TcpTrafficGenerator.o \
-                test/TcpMultiplexingTrafficGenerator.o 
+_EVAL_OBJ       := \
+                evaluation/testThreadPool.o \
+                evaluation/Main.o \
+                evaluation/PacketHijacking.o \
+                evaluation/TrafficGenerator.o \
+                evaluation/test_distribution.o \
+                evaluation/TcpTrafficGenerator.o \
+                evaluation/TcpMultiplexingTrafficGenerator.o 
 
 OUTDIR          := $(DEBUG_OUTDIR)
 
@@ -103,7 +103,7 @@ endif
 _OBJS           := ${_COMMON_LIB_OBJ}
 _OBJS           += ${_UTIL_OBJ}
 _OBJS           += ${_TUNNEL_LIB_OBJ}
-_OBJS           += ${_TEST_OBJ}
+_OBJS           += ${_EVAL_OBJ}
 
 LIBS            := -lnfnetlink -lnetfilter_queue
 
@@ -111,14 +111,14 @@ LIBS            := -lnfnetlink -lnetfilter_queue
 COMMON_LIB_OBJ  := $(patsubst %,$(OUTDIR)/%,$(_COMMON_LIB_OBJ))
 UTIL_OBJ        := $(patsubst %,$(OUTDIR)/%,$(_UTIL_OBJ))
 TUNNEL_LIB_OBJ  := $(patsubst %,$(OUTDIR)/%,$(_TUNNEL_LIB_OBJ))
-TEST_OBJ        := $(patsubst %,$(OUTDIR)/%,$(_TEST_OBJ))
+EVAL_OBJ        := $(patsubst %,$(OUTDIR)/%,$(_EVAL_OBJ))
 OBJS            := $(patsubst %,$(OUTDIR)/%,$(_OBJS))
 SUBDIRS         := $(patsubst %,$(OUTDIR)/%,$(_SUBDIRS))
 
 COMMON_LIB_DEP  := $(patsubst %.o,%.d,$(COMMON_LIB_OBJ))
 UTIL_DEP        := $(patsubst %.o,%.d,$(UTIL_OBJ))
 TUNNEL_LIB_DEP  := $(patsubst %.o,%.d,$(TUNNEL_LIB_OBJ))
-TEST_DEP        := $(patsubst %.o,%.d,$(TEST_OBJ))
+EVAL_DEP        := $(patsubst %.o,%.d,$(EVAL_OBJ))
 DEPS            := $(patsubst %.o,%.d,$(OBJS))
 
 #=========================================
@@ -135,9 +135,9 @@ $(OUTDIR)/libViscous.a: $(COMMON_LIB_OBJ) $(UTIL_OBJ) $(TUNNEL_LIB_OBJ)
 	@echo 'archiving'
 	@$(AR) -rv $@ $^
 
-$(OUTDIR)/ViscousTest: $(OUTDIR)/libViscous.a $(TEST_OBJ)
+$(OUTDIR)/ViscousTest: $(OUTDIR)/libViscous.a $(EVAL_OBJ)
 	@echo "LD 	$@"
-	@$(LINK) -pthread -o $@ $(TEST_OBJ) -L $(OUTDIR) $(LIBS) -lViscous
+	@$(LINK) -pthread -o $@ $(EVAL_OBJ) -L $(OUTDIR) $(LIBS) -lViscous
 
 $(OUTDIR)/%.o: %.c $(OUTDIR)/%.d
 	@mkdir -p $(dir $@)
