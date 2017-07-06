@@ -121,8 +121,6 @@ TUNNEL_LIB_DEP  := $(patsubst %.o,%.d,$(TUNNEL_LIB_OBJ))
 TEST_DEP        := $(patsubst %.o,%.d,$(TEST_OBJ))
 DEPS            := $(patsubst %.o,%.d,$(OBJS))
 
-DEPT			:= $(patsubst %.o,%.t,$(OBJS))
-
 #=========================================
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPS)
@@ -131,44 +129,38 @@ endif
 all: $(OUTDIR)/ViscousTest
 
 clean:
-	rm -rf ${OUTDIR}
+	rm -rf $(OBJS)
 
 $(OUTDIR)/libViscous.a: $(COMMON_LIB_OBJ) $(UTIL_OBJ) $(TUNNEL_LIB_OBJ)
 	@echo 'archiving'
 	@$(AR) -rv $@ $^
 
 $(OUTDIR)/ViscousTest: $(OUTDIR)/libViscous.a $(TEST_OBJ)
-	@echo "LD \t$@"
+	@echo "LD 	$@"
 	@$(LINK) -pthread -o $@ $(TEST_OBJ) -L $(OUTDIR) $(LIBS) -lViscous
 
-$(OUTDIR)/%.o: %.c 
+$(OUTDIR)/%.o: %.c $(OUTDIR)/%.d
 	@mkdir -p $(dir $@)
-	@echo "CC \t$^"
-	@$(CC) $(CFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$(patsubst %.o,%.d,$@)" -MF"$(patsubst %.o,%.d,$@)" $^
+	@echo "CC 	$<"
 	@$(CC) -c $(CFLAGS) $(DEBUG_FLAG) -o $@ $<
 
-$(OUTDIR)/%.o: %.cc 
+$(OUTDIR)/%.o: %.cc $(OUTDIR)/%.d
 	@mkdir -p $(dir $@)
-	@echo "CPP \t$^"
-	@$(CPP) $(CCFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$(patsubst %.o,%.d,$@)" -MF"$(patsubst %.o,%.d,$@)" $^
+	@echo "CPP 	$<"
 	@$(CPP) -c $(CCFLAGS) $(DEBUG_FLAG) -o $@ $<
 
-$(OUTDIR)/src/util/libev.o: src/util/libev.cc
+$(OUTDIR)/src/util/libev.o: src/util/libev.cc $(OUTDIR)/src/util/libev.d
 	@mkdir -p $(dir $@)
-	@echo "CPP \t$^"
-	@$(CPP) $(CCFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$(patsubst %.o,%.d,$@)" -MF"$(patsubst %.o,%.d,$@)" $^
+	@echo "CPP 	$<"
 	@$(CPP) -std=c++0x -Wno-comment -Wno-sign-compare -Wno-unused-value -Wno-parentheses -DEV_STANDALONE=1 -I"src/common_lib/header" $(DEBUG_FLAG) -Wall -c -fmessage-length=0 -pthread -o "$@" "$<"
 
 #=======Dependancy====
+$(OUTDIR)/%.d: %.c
+	@mkdir -p $(dir $@)
+	@echo "DEPS 	$^"
+	@$(CC) $(CFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$@" -MF"$@" $<
 
-# outdep: $(DEPS)
-
-# $(OUTDIR)/%.d: %.c
-# 	@mkdir -p $(dir $@)
-# 	@echo "DEPS \t$^"
-# 	@$(CC) $(CFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$@" -MF"$@" $^
-
-# $(OUTDIR)/%.d: %.cc
-# 	@mkdir -p $(dir $@)
-# 	@echo "DEPS \t$^"
-# 	@$(CPP) $(CCFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$@" -MF"$@" $^
+$(OUTDIR)/%.d: %.cc
+	@mkdir -p $(dir $@)
+	@echo "DEPS 	$@"
+	@$(CPP) $(CCFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$@" -MF"$@" $<
