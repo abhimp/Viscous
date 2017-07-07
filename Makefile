@@ -122,11 +122,11 @@ EVAL_DEP        := $(patsubst %.o,%.d,$(EVAL_OBJ))
 DEPS            := $(patsubst %.o,%.d,$(OBJS))
 
 #=========================================
+all: $(OUTDIR)/ViscousTest
+
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPS)
 endif
-
-all: $(OUTDIR)/ViscousTest
 
 clean:
 	rm -rf $(OBJS)
