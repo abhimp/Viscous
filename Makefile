@@ -3,6 +3,10 @@ CPP             := g++
 LINK            := g++
 AR              := ar
 
+OUTPUT_LIBRARY  := Viscous
+OUTPUT_LIB_OBJ  := lib$(OUTPUT_LIBRARY).a
+OUTPUT_BINARY   := ViscousTest
+
 CFLAGS          := \
                 -std=c11 \
                 -Wno-pointer-sign \
@@ -122,22 +126,23 @@ EVAL_DEP        := $(patsubst %.o,%.d,$(EVAL_OBJ))
 DEPS            := $(patsubst %.o,%.d,$(OBJS))
 
 #=========================================
-all: $(OUTDIR)/ViscousTest
+all: $(OUTDIR)/$(OUTPUT_BINARY)
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPS)
 endif
 
 clean:
-	rm -rf $(OBJS)
+	rm -rf $(OBJS) $(DEPS) 
+	rm -rf $(OUTDIR)/$(OUTPUT_LIB_OBJ) $(OUTDIR)/$(OUTPUT_BINARY)
 
-$(OUTDIR)/libViscous.a: $(COMMON_LIB_OBJ) $(UTIL_OBJ) $(TUNNEL_LIB_OBJ)
+$(OUTDIR)/$(OUTPUT_LIB_OBJ): $(COMMON_LIB_OBJ) $(UTIL_OBJ) $(TUNNEL_LIB_OBJ)
 	@echo 'archiving'
 	@$(AR) -rv $@ $^
 
-$(OUTDIR)/ViscousTest: $(OUTDIR)/libViscous.a $(EVAL_OBJ)
+$(OUTDIR)/ViscousTest: $(OUTDIR)/$(OUTPUT_LIB_OBJ) $(EVAL_OBJ)
 	@echo "LD 	$@"
-	@$(LINK) -pthread -o $@ $(EVAL_OBJ) -L $(OUTDIR) $(LIBS) -lViscous
+	@$(LINK) -pthread -o $@ $(EVAL_OBJ) -L $(OUTDIR) $(LIBS) -l$(OUTPUT_LIBRARY)
 
 $(OUTDIR)/%.o: %.c $(OUTDIR)/%.d
 	@mkdir -p $(dir $@)
