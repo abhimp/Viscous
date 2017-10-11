@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ extern "C" {
 #endif
 
 typedef struct __app_thread_info__{
-	pthread_t tid;
+    pthread_t tid;
     sem_t waitForJob;
     sem_t jobRcvd;
     appByte *buf;

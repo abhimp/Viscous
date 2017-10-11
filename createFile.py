@@ -1,4 +1,4 @@
- # * This is an implemetation of Viscous protocol.
+ # * This is an implementation of Viscous protocol.
  # * Copyright (C) 2017  Abhijit Mondal
  # *
  # * This program is free software: you can redistribute it and/or modify

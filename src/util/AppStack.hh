@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,8 @@
 #define SRC_UTIL_APPSTACK_HPP_
 #include <common.h>
 #include "Macros.h"
+
+namespace util {
 
 template<typename T>
 class AppStack
@@ -93,4 +95,7 @@ bool AppStack<T>::empty()
 {
     return (top_ <= -1);
 }
+
+}  // namespace util
+
 #endif /* SRC_UTIL_APPSTACK_HPP_ */

@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -37,8 +37,9 @@
 #include <appThread.h>
 #include "../../util/ConditonalWait.hh"
 #include <mutex>
-#include "../PacketPool.h"
-#include "SendingSocket.h"
+
+#include "../PacketPool.hh"
+#include "SendingSocket.hh"
 
 // Define some constants.
 #define IP4_HDRLEN 20         // IPv4 header length
@@ -48,31 +49,36 @@
 
 class SendThroughInterface {
 public:
-	SendThroughInterface(appString intf, ether_addr dst_addr, in_addr src_ip, appInt src_port);
-	SendThroughInterface(appString intf, in_addr src_ip, appInt src_port);
-	SendThroughInterface(InterfaceAddr *localAddr);
-	virtual ~SendThroughInterface();
-	int init();
-	int sendPkt(Packet *pkt, in_addr dst_ip, appInt dst_port);
-	in_addr getLocalIpNetwork();
+//    SendThroughInterface(appString intf, ether_addr dst_addr, in_addr src_ip, appInt src_port);
+    SendThroughInterface(appString intf, in_addr src_ip, appInt src_port);
+    SendThroughInterface(InterfaceAddr *localAddr);
+    virtual ~SendThroughInterface();
+    int init();
+    int sendPkt(Packet *pkt, in_addr dst_ip, appInt dst_port);
+    in_addr getLocalIpNetwork();
+    void getIface(appString iface, appInt len = 0);
+    in_addr getLocIp(){return src_ip;}
+    in_addr getGwIp(){return gw_ip;}
+    ether_addr getLocMac(){return e_src_addr;}
+    ether_addr getGwMac() {return e_dst_addr;}
 private:
-	inline uint16_t udp4_checksum (ip iphdr, udphdr udpheader, appString payload, appInt payloadlen);
-	inline uint16_t checksum (uint16_t *addr, appInt len);
-	inline void settingUpDestinationMac(ether_addr &destMac);
-//	int sendPacket(appString data, appInt datalen, in_addr dst_ip, appInt dst_port);
+    inline uint16_t udp4_checksum (ip iphdr, udphdr udpheader, appString payload, appInt payloadlen);
+    inline uint16_t checksum (uint16_t *addr, appInt len);
+    inline void settingUpDestinationMac(ether_addr &destMac);
+//    int sendPacket(appString data, appInt datalen, in_addr dst_ip, appInt dst_port);
 
-//	uint8_t ether_frame[MY_UDP_PKT_SIZE];
-	char interface[IF_NAMESIZE];
-	in_addr src_ip, gw_ip;
-	int ip_flags[4];
-	ether_addr e_src_addr, e_dst_addr;
-	sockaddr_ll device;
+//    uint8_t ether_frame[MY_UDP_PKT_SIZE];
+    char interface[IF_NAMESIZE];
+    in_addr src_ip, gw_ip;
+    int ip_flags[4];
+    ether_addr e_src_addr, e_dst_addr;
+    sockaddr_ll device;
     ip iphdr;
     udphdr udpHeader;
     int src_port;
 //    int socket_descriptor;
     appBool noDestMac;
-	Interface::SendingSocket *opSock;
+    Interface::SendingSocket *opSock;
 };
 
 SendThroughInterface **getInterfaceSender();

@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,125 +25,29 @@
  */
 
 #include "ServerConnection.hh"
-#include "PacketPool.h"
-appSInt ServerConnection::sendPacketTo(appInt id, Packet *pkt, struct sockaddr_in *dest_addr, socklen_t addrlen) {
-	connection->sendPacketTo(id, pkt, dest_addr, addrlen);
-	return 0;
-}
+#include "PacketPool.hh"
+#include "../util/AppLLQueue.hh"
+#include "../util/CircularBuffer.hh"
+#include "../util/ConditonalWait.hh"
+#include "ChannelHandler/ChannelHandler.hh"
+#include "CommonHeaders.hh"
+#include "Packet.h"
 
-appSInt ServerConnection::recvPacketFrom(Packet *pkt){
-	if(pkt->header.fingerPrint == EMPTY_FINGER_PRINT){
-		if((pkt->header.flag & FLAG_SYN) and (validateNewClient && validateNewClient(this, pkt, pkt->src_addr))){
-			Packet *newPkt = getPacketPool().getNewPacketWithData();
-			generateFingerPrint(&newPkt->header.fingerPrint, pkt->src_addr);
-			LOGD("genpkt: %d\n", newPkt->header.fingerPrint);
-			newPkt->header.flag = FLAG_ACK|FLAG_SYN;
-			ClientDetails *cl = new ClientDetails(newPkt->header.fingerPrint, NULL, this);
-			pendingClients[newPkt->header.fingerPrint] = cl;
-			newPkt->header.ifcsrc = primaryInterfaceId;
-			newPkt->header.ifcdst = pkt->header.ifcsrc;
-			newPkt->optHeaders = getIpHeaders(&newPkt->header.OHLen);
-//			newPkt->freeAtInterFacesinding = TRUE;
-			getInterfaceSender()[primaryInterfaceId]->sendPkt(newPkt, pkt->src_addr.sin_addr, pkt->src_addr.sin_port);
-			getPacketPool().freePacket(newPkt);
-		}
-		getPacketPool().freePacket(pkt);
-		return 0;
-	}
-	auto iter = clients.find(pkt->header.fingerPrint);
-	ClientDetails *client;
-	if(iter == clients.end())
-	{
-		iter = pendingClients.find(pkt->header.fingerPrint);
-		if(iter == pendingClients.end()){
-		    if(pkt->header.flag&FLAG_CFN){
-		        Packet *npkt = getPacketPool().getNewPacket();
-		        npkt->header.flag = FLAG_CFN|FLAG_ACK;
-		        getInterfaceSender()[primaryInterfaceId]->sendPkt(npkt, pkt->src_addr.sin_addr, pkt->src_addr.sin_port);
-		        getPacketPool().freePacket(npkt);
-		    }
-		    else
-		        LOGI("Unknown request");
-			getPacketPool().freePacket(pkt);
-			return 1;
-		}
-		client = iter->second;
-		pendingClients.erase(pkt->header.fingerPrint);
-		clients[pkt->header.fingerPrint] = client;
-		Multiplexer *mux = new Multiplexer(client);
-		client->setMux(mux);
-//		client->setupInterfaces(pkt->header.ifcsrc, pkt->src_addr);
-	}
-	else
-		client = iter->second;
-	if(!client->isValidFlow(pkt->header.flowId) and pkt->header.flowId)
-	{
-	    LOGD("adding new flow %d for client %d", pkt->header.flowId, client->getFingerPrint());
-	    auto obj = client->addNewFlow(pkt, pkt->src_addr, pkt->dest_addr);
-	    if(newFlowCB)
-	        newFlowCB(this, pkt->header.fingerPrint, pkt->header.flowId, obj);
-	}
-	if(pkt->header.flag&FLAG_CFN){
-	    closeClient(client);
-	    Packet *npkt = getPacketPool().getNewPacket();
-	    npkt->header.flag = FLAG_CFN|FLAG_ACK;
-	    getInterfaceSender()[primaryInterfaceId]->sendPkt(npkt, pkt->src_addr.sin_addr, pkt->src_addr.sin_port);
-	    getPacketPool().freePacket(npkt);
-	    getPacketPool().freePacket(pkt);
-	    return 0;
-	}
-	return client->recvPacketFrom(pkt);
-////	    TODO do something with new flow in serverconnection
-}
+namespace server{
 
-
-appSInt ServerConnection::readData(appInt16 fPrint, appInt16 flowId, appByte *data, appInt size){
-	if(!hasKey(clients, fPrint))
-		return -1;
-	ClientDetails *child = clients[fPrint];
-	return child->readData(flowId, data, size);
-}
-
-appSInt ServerConnection::sendData(appInt16 fPrint, appInt16 flowId, appByte *data, appInt size){
-	if(!hasKey(clients, fPrint))
-		return -1;
-	ClientDetails *child = clients[fPrint];
-	return child->sendData(flowId, data, size);
-}
-
-void ServerConnection::getOption(APP_TYPE::APP_GET_OPTION optType,
-        void* optionValue, appInt optionValueLen, void* returnValue,
-        appInt returnValueLen) {
-    APP_ASSERT(optionValue && optionValueLen);
-    switch(optType){
-        case APP_TYPE::APP_GET_STREAM_FLOW_AND_FINGER_PRINT:
-            {
-                appInt16 fprint, flowId;
-                appInt16 *vals;
-                APP_ASSERT(optionValueLen == sizeof(appInt16)*2);
-                vals = (appInt16*)optionValue;
-                fprint = vals[0];
-                flowId = vals[1];
-                if(!hasKey(clients, fprint))
-                    return;
-                ClientDetails *cl= clients[fprint];
-                cl->getOption(APP_TYPE::APP_GET_STREAM_FLOW, &flowId, sizeof(appInt16), returnValue, returnValueLen);
-            }
-            break;
-        default:
-            APP_ASSERT(0 && "not allowed");
-    }
-}
-
-void ServerConnection::closeClient(ClientDetails* client) {
-    //TODO
-    if(!client)
-        return;
-    LOGI("Closing");
-    if(hasKey(clients, client->getFingerPrint())){
-        clients.erase(client->getFingerPrint());
-    }
-    client->close();
+ServerConnection::ServerConnection(appInt port, appByte* ip): BaseReliableObj(NULL)
+        , listeningIp(ip)
+        , localPort(port)
+        , threadRunning(FALSE)
+        , threadId(0)
+        , connection(NULL)
+        , newDataCallBackData(NULL)
+//        , primaryInterfaceId_(1)
+        , validateNewClient(NULL)
+        , newFlowCB(NULL)
+        , maxWaiting(0)
+        , ifcMon(NULL)
+{
 }
 
 ServerConnection::~ServerConnection() {
@@ -156,13 +60,132 @@ ServerConnection::~ServerConnection() {
     }
 }
 
-UTIL::WorkerThread* ServerConnection::getWorker(WorkerType type) {
+appSInt ServerConnection::sendPacketTo(appInt id, Packet *pkt) {
+    connection->sendPacketTo(id, pkt);
+    return 0;
+}
+
+appSInt ServerConnection::recvPacketFrom(Packet *pkt, RecvSendFlags &flags){
+    if(pkt->header.fingerPrint == EMPTY_FINGER_PRINT){
+        if(!(pkt->header.flag&FLAG_SYN)){
+            getPacketPool().freePacket(pkt);
+            return 0;
+        }
+
+        auto nonce = getNonce(pkt);
+        if(nonce == 0){
+            getPacketPool().freePacket(pkt);
+            return 0;
+        }
+
+        appBool pendingClient = hasKey(nonce2FingerPrint, nonce);
+        if(!pendingClient){
+            appInt16 fingerPrint;
+
+            generateFingerPrint(&fingerPrint, pkt->src_addr);
+            nonce2FingerPrint[nonce] = fingerPrint;
+            fingerPrint2Nonce[fingerPrint] = nonce;
+
+            Packet *newPkt = getPacketPool().getNewPacketWithData();
+            newPkt->header.fingerPrint = fingerPrint;
+            LOGD("genpkt: %d\n", newPkt->header.fingerPrint);
+            newPkt->header.flag = FLAG_ACK|FLAG_SYN;
+            Client4Server *cl = new Client4Server(newPkt->header.fingerPrint, NULL, this);
+            std::shared_ptr<Client4Server> x(cl);
+            pendingClients[newPkt->header.fingerPrint] = x;
+            auto pIfcId = ifcMon->getPrimaryInterfaceId();
+            newPkt->header.ifcsrc = pIfcId;
+            newPkt->header.ifcdst = pkt->header.ifcsrc;
+            newPkt->optHeaders = getIpHeaders(&newPkt->header.OHLen);
+            ifcMon->get(pIfcId)->sendPkt(newPkt, pkt->src_addr.sin_addr, pkt->src_addr.sin_port);
+            getPacketPool().freePacket(newPkt);
+            getPacketPool().freePacket(pkt);
+            return 0;
+        }
+        else if((pkt->header.flag & FLAG_SYN) and pendingClient){
+            Packet *newPkt = getPacketPool().getNewPacketWithData();
+            newPkt->header.fingerPrint = nonce2FingerPrint[nonce];
+            newPkt->header.flag = FLAG_ACK|FLAG_SYN;
+            Client4Server *cl = new Client4Server(newPkt->header.fingerPrint, NULL, this);
+            std::shared_ptr<Client4Server> x(cl);
+            pendingClients[newPkt->header.fingerPrint] = x;
+            auto pIfcId = ifcMon->getPrimaryInterfaceId();
+            newPkt->header.ifcsrc = pIfcId;
+            newPkt->header.ifcdst = pkt->header.ifcsrc;
+            newPkt->optHeaders = getIpHeaders(&newPkt->header.OHLen);
+            ifcMon->get(pIfcId)->sendPkt(newPkt, pkt->src_addr.sin_addr, pkt->src_addr.sin_port);
+            getPacketPool().freePacket(newPkt);
+        }
+
+        getPacketPool().freePacket(pkt);
+        return 0;
+    }
+    auto iter = clients.find(pkt->header.fingerPrint);
+    std::shared_ptr<Client4Server> client;
+
+    if(iter == clients.end())
+    {
+        iter = pendingClients.find(pkt->header.fingerPrint);
+        if(iter == pendingClients.end()){
+            if(pkt->header.flag&FLAG_CFN){
+                Packet *npkt = getPacketPool().getNewPacket();
+                npkt->header.flag = FLAG_CFN|FLAG_ACK;
+                auto pIfcId = ifcMon->getPrimaryInterfaceId();
+                ifcMon->get(pIfcId)->sendPkt(npkt, pkt->src_addr.sin_addr, pkt->src_addr.sin_port);
+                getPacketPool().freePacket(npkt);
+            }
+            else
+                LOGI("Unknown request");
+            getPacketPool().freePacket(pkt);
+            return 1;
+        }
+        client = iter->second;
+        pendingClients.erase(pkt->header.fingerPrint);
+        appInt64 nonce = fingerPrint2Nonce[pkt->header.fingerPrint];
+        fingerPrint2Nonce.erase(pkt->header.fingerPrint);
+        nonce2FingerPrint.erase(nonce);
+
+        clients[pkt->header.fingerPrint] = client;
+        Multiplexer *mux = new Multiplexer(client.get(), pkt->header.fingerPrint);
+        client->setMux(mux);
+        client->start();
+    }
+    else
+        client = iter->second;
+
+    pkt->newFlow = FALSE;
+    RecvSendFlags flag = DEFALT_RECVSENDFLAG_VALUE;
+    auto ret = client->recvPacketFrom(pkt, flag);
+    return ret;
+////        TODO do something with new flow in serverconnection
+}
+
+
+appSInt ServerConnection::readData(appInt32 flowId, appByte *data, appInt size){
+    appFlowIdType flId;
+    flId.clientFlowId = flowId;
+    if(!hasKey(clients, flId.fingerPrint))
+        return -1;
+    auto child = clients[flId.fingerPrint];
+    return child->readData(flId, data, size);
+}
+
+appSInt ServerConnection::sendData(appInt32 flowId, appByte *data, appInt size){
+    appFlowIdType flId;
+    flId.clientFlowId = flowId;
+    if(!hasKey(clients, flId.fingerPrint))
+        return -1;
+    auto child = clients[flId.fingerPrint];
+    return child->sendData(flId, data, size);
+}
+
+util::WorkerThread* ServerConnection::getWorker(WorkerType type) {
     if(hasKey(workers, type))
         return workers[type];
     getWorkerMutex.lock();
     if(hasKey(workers, type))
         return workers[type];
-    auto tmp = new UTIL::WorkerThread(true);
+    auto tmp = new util::WorkerThread(true);
     workers[type] = tmp;
     getWorkerMutex.unlock();
     return tmp;
@@ -174,7 +197,7 @@ PacketIpHeader* ServerConnection::getIpHeaders(appInt8 *ohcnt) {
     tmp = NULL;
     appInt8 cnt = 0;
     for(auto it = 0 ; it < INTERFACE_SENDER_CNT; it++){
-        auto sender = getInterfaceSender()[it];
+        auto sender = ifcMon->get(it);
         if(sender == NULL)
             continue;
         tmp = GET_OPTIONAL_PACKET_HEADER_TYPE_IP_ADDR;
@@ -188,77 +211,101 @@ PacketIpHeader* ServerConnection::getIpHeaders(appInt8 *ohcnt) {
     return list;
 }
 
-void ServerConnection::setupIterface(){
-    auto list = SearchMac::getIpMatrix();
-    auto cnt = 0;
-    if(list.size() > 0){
-        for(auto it : list){
-            it.localPort = htons(localPort);
-            SendThroughInterface *tmp = new SendThroughInterface(&it);
-            tmp->init();
-            cnt ++;
-            getInterfaceSender()[cnt] = tmp; //AS
-        }
-        return;
+void ServerConnection::newFlowNoticfication(appInt16 fngrPrnt) {
+    acceptLock.lock();
+    if(hasKey(pendingFlowClientId, fngrPrnt)){
+        auto x = pendingFlowClientId[fngrPrnt];
+        x++;
+        pendingFlowClientId[fngrPrnt] = x;
     }
-    LOGE("Routing table doesn't contain defaut gateway. Falling back to conventional way.");
-    auto ifcs = SearchMac::getInterfaceInfos();
-    InterfaceInfo *tmp;
-    for(auto it : ifcs){
-        tmp = new InterfaceInfo();
-        cnt++;
-        *tmp = it;
-        getInterfaceInfos()[cnt] = tmp;
-        SendThroughInterface *sti = new SendThroughInterface((appString)it.ifname.c_str(), it.ip, (appInt)htons(localPort));
-        sti->init();
-        getInterfaceSender()[cnt] = sti;
+    else{
+        pendingFlowClientId[fngrPrnt] = 1;
+    }
+    acceptSem.notify();
+    acceptLock.unlock();
+}
+
+appInt64 ServerConnection::getNonce(Packet *pkt){
+    auto optHeader = pkt->optHeaders;
+    appInt64 nonce = 0;
+    for(;optHeader;optHeader = optHeader->next){
+        if(optHeader->type == OPTIONAL_PACKET_HEADER_TYPE_NONCE_HEADER){
+            auto nonceHdr = (PacketNonceHeader *) optHeader;
+            nonce = nonceHdr->nonce;
+            break;
+        }
+    }
+    return nonce;
+}
+
+appInt32 ServerConnection::acceptFlow() {
+    appInt32 fingerPrint;
+    acceptSem.wait();
+    acceptLock.lock();
+    auto it = pendingFlowClientId.begin();
+    auto fngrPrnt = it->first;
+    auto val = it->second;
+    val--;
+    if(val == 0)
+        pendingFlowClientId.erase(fngrPrnt);
+    else
+        pendingFlowClientId[fngrPrnt] = val;
+    acceptLock.unlock();
+    auto client = clients[fngrPrnt];
+    fingerPrint = client->acceptFlow();
+    return fingerPrint;
+}
+
+void ServerConnection::listen(appInt count) {
+    maxWaiting = count;
+}
+
+void ServerConnection::setupIterface(){
+    ifcMon = new InterfaceMonitor(localPort);
+    ifcMon->start();
+    if(ifcMon->getPrimaryInterfaceId() == 0){
+        LOGE("No interface have proper routing. exiting.\n");
+        exit(100);
     }
 }
 
 appStatus ServerConnection::startServer() {
-//    ServerConnection *sCon = this;
-//    appByte *buf = APP_PACK(sCon);
     connection = new PacketEventHandler(this);
     connection->startServer(localPort, listeningIp);
     setupIterface();
-//    ev_init(&timer, evTimerExpired);
-//    timer.repeat = 0.2; //100milisec
-//    timer.data = this;
-//    ev_timer_again(EV_DEFAULT_ &timer);
-//    if(runInThreadGetTid(ServerConnection::startServerInsideThread, buf, FALSE, &this->threadId) != APP_SUCCESS)
-//        APP_RETURN_FAILURE
-//    this->threadRunning = TRUE;
     APP_RETURN_SUCCESS
 }
 
 void ServerConnection::waitToJoin(){
     connection->waitToFinishAllThreads();
-//    if(threadRunning)
-//        pthread_join(threadId, NULL);
 }
 
-
-void *ServerConnection::startServerInsideThread(void *data, appThreadInfoId tid){
-	ServerConnection *sCon;
-	APP_UNPACK((appByte *)data, sCon);
-    sCon->threadRunning = TRUE;
-    ev_run(EV_DEFAULT_ 0);
-	return NULL;
-}
 appInt ServerConnection::timeoutEvent(appTs time){
-	timeoutProd.timeoutEvent(time);
-	return 0;
-}
-void ServerConnection::evTimerExpired(EV_P_ ev_timer *w, int revents){
-	ServerConnection *sCon = (ServerConnection *)w->data;
-	sCon->timeoutEvent(sCon->getTime());
-	ev_timer_again(loop, w);
+    timeoutProd.timeoutEvent(time);
+    if(time.getMili() - lastTimeout.getMili() > 5000){
+        lastTimeout = time;
+        std::set<appInt16> toBeDeleted;
+        for(auto cl : clients){
+            auto client = cl.second;
+            if(client->isClosed() and (time.getMili() - client->getLastUsed().getMili() > 5000)){
+                toBeDeleted.insert(cl.first);
+            }
+        }
+        for(auto x : toBeDeleted){
+            clients.erase(x);
+            LOGE("Closing %d", x);
+        }
+    }
+    return 0;
 }
 
-appStatus ServerConnection::closeFlow(appInt16 fp, appInt16 flowId){
-	if(!hasKey(clients, fp))
-			return APP_FAILURE;
-	ClientDetails *child = clients[fp];
-	return child->closeFlow(flowId);
-
+appStatus ServerConnection::closeFlow(appInt32 fp){
+    appFlowIdType flowId;
+    flowId.clientFlowId = fp;
+    if(!hasKey(clients, flowId.fingerPrint))
+            return APP_FAILURE;
+    auto child = clients[flowId.fingerPrint];
+    return child->closeFlow(flowId);
 }
+
+} //namespace server

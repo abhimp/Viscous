@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,44 +24,85 @@
  *      Author: abhijit
  */
 #include "ServerConnectionClientDetail.hh"
+
+#include "PacketPool.hh"
 #include "ServerConnection.hh"
-#include "PacketPool.h"
+#include "InterfaceController/SendThroughInterface.h"
 
+
+namespace server{
 //===================
-//  ClientDetails
+//  Client4Server
 //===================
-ClientDetails::ClientDetails(appInt16 fingerPrint, Multiplexer *mux, ServerConnection *parent):
-			BaseReliableObj(parent), clientFingerPrint(fingerPrint), remoteAddr(), mux(mux),
-			lastUsed(), parent(parent), ifcSch(this, TRUE)
+Client4Server::Client4Server(appInt16 fingerPrint, Multiplexer *mux, ServerConnection *parent): BaseReliableObj(parent)
+        , clientFingerPrint(fingerPrint)
+        , remoteAddr()
+        , mux(mux)
+        , lastUsed()
+        , parent(parent)
+        , ifcSch(NULL)
+        , stopThread(FALSE)
+        , closed(FALSE)
 {
+#ifdef NEW_CHANNEL_HANDLE
+    ifcSch = new scheduler::NewChannelScheculer(this, TRUE);
+#else
+    ifcSch = new scheduler::InterfaceScheduler(this, TRUE);
+#endif
 }
 
-void ClientDetails::setupInterfaces(appInt8 ifcRem, sockaddr_in &remAddr){
+Client4Server::~Client4Server() {
+    if(ifcSch){
+        delete ifcSch;
+        ifcSch = NULL;
+    }
+    if(mux){
+        delete mux;
+        mux = NULL;
+    }
+    stopThread = TRUE;
+    recvSem.notify();
+    waitToClose.wait();
+}
+
+void Client4Server::setupInterfaces(appInt8 ifcRem, sockaddr_in &remAddr){
     RemoteAddr rm(remAddr.sin_addr, remAddr.sin_port);
-    ifcSch.addRemote(ifcRem, &rm);
+    ifcSch->addRemote(ifcRem, &rm);
 }
 
-appSInt ClientDetails::sendPacketTo(appInt id, Packet *pkt, struct sockaddr_in *dest_addr, socklen_t addrlen){
-	APP_ASSERT(pkt);
-	pkt->header.fingerPrint = clientFingerPrint;
-	appSInt ret = ifcSch.sendPacketTo(id, pkt, dest_addr, addrlen);
-	return ret;
+appSInt Client4Server::sendPacketTo(appInt id, Packet *pkt){
+    APP_ASSERT(pkt);
+    if((pkt->header.flag&FLAG_CTR) and !ifcSch)
+        return -ERROR_NETWORK_CLOSED;
+
+    pkt->header.fingerPrint = clientFingerPrint;
+    appSInt ret = ifcSch->sendPacketTo(id, pkt);
+    return ret;
 }
 
-appSInt ClientDetails::recvPacketFrom(Packet *pkt){
-	APP_ASSERT(pkt);
-	appSInt ret = 0;
-	if(pkt->header.fingerPrint != clientFingerPrint){
-		ret = 1;
-		goto out;
-	}
-	if(!this->mux){
-		ret = 2;
-		goto out;
-	}
-	ifcSch.recvPacketFrom(pkt);
-    ret = mux->recvPacketFrom(pkt);
-    out:
+inline appSInt Client4Server::recvProcPacket(Packet* pkt) {
+    APP_ASSERT(pkt->processed);
+    recvQueue.addToQueue(pkt);
+    recvSem.notify();
+    return 0;
+}
+
+appSInt Client4Server::recvPacketFrom(Packet *pkt, RecvSendFlags &flags){
+    APP_ASSERT(pkt);
+    LOGI("flowId recv %d", pkt->header.flowId);
+    appSInt ret = 0;
+    if(pkt->header.fingerPrint != clientFingerPrint){
+        ret = 1;
+        goto out;
+    }
+    if(!this->mux){
+        ret = 2;
+        goto out;
+    }
+    recvQueue.addToQueue(pkt);
+    recvSem.notify();
+    return 0;
+out:
     if(ret){
         getPacketPool().freePacket(pkt);
     }
@@ -69,44 +110,88 @@ appSInt ClientDetails::recvPacketFrom(Packet *pkt){
     return 0;
 }
 
-ARQ::Streamer *ClientDetails::addNewFlow(Packet *pkt, sockaddr_in &src_addr, sockaddr_in &dest_addr){
-	if(pkt->header.fingerPrint != clientFingerPrint)
-		return NULL;
-	if(!this->mux)
-		return NULL;
+appFlowIdType Client4Server::addNewFlow(Packet *pkt, sockaddr_in &src_addr, sockaddr_in &dest_addr){
+    appFlowIdType default_flow;
+    if(pkt->header.fingerPrint != clientFingerPrint)
+        return default_flow;
+    if(!this->mux)
+        return default_flow;
 
-	return mux->addNewFlow(pkt, src_addr, dest_addr);
+    return mux->addNewFlow(pkt, src_addr, dest_addr);
 }
 
 
-appSInt ClientDetails::readData(appInt16 flowId, appByte *data, appInt size){
-	return mux->readData(flowId, data, size);
+appSInt Client4Server::readData(appFlowIdType flowId, appByte *data, appInt size){
+    return mux->readData(flowId, data, size);
 }
 
-appSInt ClientDetails::sendData(appInt16 flowId, appByte *data, appInt size){
-	return mux->sendData(flowId, data, size);
+appSInt Client4Server::sendData(appFlowIdType flowId, appByte *data, appInt size){
+    return mux->sendData(flowId, data, size);
 }
 
-appInt ClientDetails::timeoutEvent(appTs time){
-	if(mux)
-		mux->timeoutEvent(time);
-	return 0;
+appInt Client4Server::timeoutEvent(appTs time){
+    if(mux)
+        mux->timeoutEvent(time);
+    return 0;
 }
 
-void ClientDetails::getOption(APP_TYPE::APP_GET_OPTION optType,
-        void* optionValue, appInt optionValueLen, void* returnValue,
-        appInt returnValueLen) {
-    switch(optType){
-        case APP_TYPE::APP_GET_STREAM_FLOW:
-            mux->getOption(optType, optionValue, optionValueLen, returnValue, returnValueLen);
-            break;
-        default:
-            APP_ASSERT(0);
+void Client4Server::close() {
+    LOGI("ifcSch closing");
+    if(ifcSch){
+        ifcSch->close();
+        delete ifcSch;
+        ifcSch = NULL;
+    }
+    lastUsed = getTime();
+}
+
+appInt32 Client4Server::acceptFlow() {
+    auto flowId = mux->acceptFlow();
+    APP_ASSERT(flowId.fingerPrint == clientFingerPrint);
+    return flowId.clientFlowId;
+}
+
+void Client4Server::run() {
+    while(1){
+        recvSem.wait();
+        if(stopThread){
+            waitToClose.notify();
+            return;
+        }
+        auto pkt = recvQueue.getFromQueue();
+        if(pkt->header.flag&FLAG_CFN){
+//            closeClient(client);
+            close();
+            closed = TRUE;
+            Packet *npkt = getPacketPool().getNewPacket();
+            npkt->header.flag = FLAG_CFN|FLAG_ACK;
+            auto ifcMon = parent->getInterfaceMontor();
+            ifcMon->get(ifcMon->getPrimaryInterfaceId())->sendPkt(npkt, pkt->src_addr.sin_addr, pkt->src_addr.sin_port);
+            getPacketPool().freePacket(npkt);
+            getPacketPool().freePacket(pkt);
+            continue;
+        }
+        RecvSendFlags flag = DEFALT_RECVSENDFLAG_VALUE;
+        recvPacketAfterThread(pkt, flag);
+        if(flag.newFlow){
+            parent->newFlowNoticfication(clientFingerPrint);
+        }
+        //TODO perform task
     }
 }
 
-void ClientDetails::close() {
-    mux->close();
-    LOGI("ifcSch closing");
-    ifcSch.close();
+appSInt Client4Server::recvPacketAfterThread(Packet* pkt,
+        RecvSendFlags& flags) {
+        appSInt ret = 0;
+        if(pkt->header.ifcdst and pkt->header.ifcsrc){
+            if(!pkt->processed)
+                ifcSch->recvPacketFrom(pkt, flags);
+            ret = mux->recvPacketFrom(pkt, flags);
+        }
+        if(ret)
+            getPacketPool().freePacket(pkt);
+        return 0;
 }
+
+
+} //namespace server

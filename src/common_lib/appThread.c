@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,13 +21,13 @@
 
 void *call_function(void* arg)
 {
-	appByte *buf = arg;
-	appThreadCallBack call_back;
-	appByte *extBuf;
-	APP_UNPACK(buf, call_back, extBuf);
-	call_back(extBuf, pthread_self());
-	pthread_exit(NULL);
-	return NULL;
+    appByte *buf = arg;
+    appThreadCallBack call_back;
+    appByte *extBuf;
+    APP_UNPACK(buf, call_back, extBuf);
+    call_back(extBuf, pthread_self());
+    pthread_exit(NULL);
+    return NULL;
 }
 sem_t finishThreadFromPool;
 void *appTerminateThreadFromPool(void *arg, appThreadInfoId tid)
@@ -41,34 +41,34 @@ void *appTerminateThreadFromPool(void *arg, appThreadInfoId tid)
 //appStatus runInThread(appThreadCallBack call_back, appByte *extBuf, appBool detachable)
 appStatus runInThreadGetTid(appThreadCallBack call_back, appByte *extBuf, appBool detachable, pthread_t *argTid)
 {
-	pthread_t tid;
-	appByte *buf = APP_PACK(call_back, extBuf);
+    pthread_t tid;
+    appByte *buf = APP_PACK(call_back, extBuf);
 
-	if(pthread_create(&tid, NULL, call_function, buf) < 0)
-	{
-		appFree(buf);
-		LOGW("thread creation failed");
-		APP_RETURN_FAILURE;
-	}
-	if(detachable)
-		pthread_detach(tid);
-	if(argTid)
-		*argTid = tid;
-	APP_RETURN_SUCCESS;
+    if(pthread_create(&tid, NULL, call_function, buf) < 0)
+    {
+        appFree(buf);
+        LOGW("thread creation failed");
+        APP_RETURN_FAILURE;
+    }
+    if(detachable)
+        pthread_detach(tid);
+    if(argTid)
+        *argTid = tid;
+    APP_RETURN_SUCCESS;
 }
 
 appStatus startThread4Pool(appThreadInfo *tInfo, appBool detachable)
 {
-	pthread_t tid;
+    pthread_t tid;
 
-	if(pthread_create(&tid, NULL, threadWaitForJob, (appByte *)tInfo) < 0)
-	{
-		LOGW("thread creation failed");
-		APP_RETURN_FAILURE;
-	}
+    if(pthread_create(&tid, NULL, threadWaitForJob, (appByte *)tInfo) < 0)
+    {
+        LOGW("thread creation failed");
+        APP_RETURN_FAILURE;
+    }
     tInfo->tid = tid;
-	if(detachable)
-		pthread_detach(tid);
+    if(detachable)
+        pthread_detach(tid);
 
     APP_RETURN_SUCCESS;
 }

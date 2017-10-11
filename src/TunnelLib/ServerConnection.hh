@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,66 +32,83 @@
 #include <appThread.h>
 #include <set>
 #include <map>
-#include "ServerConnectionClientDetail.hh"
-#include "PacketEventHandler.h"
+#include <unordered_map>
+#include <atomic>
+#include <memory>
 
+#include "PacketEventHandler.hh"
+#include "ServerConnectionClientDetail.hh"
+
+
+namespace server{
 
 class ServerConnection : public BaseReliableObj{
 public:
     typedef appBool (*validateNewClientCallBack)(ServerConnection *sCon, Packet *pkt, sockaddr_in &src_addr);
-    typedef void (*newFlowCallBack)(ServerConnection *sCon, appInt16 fingerPrint, appInt16 newFlow, ARQ::Streamer *streamer);
+    typedef void (*newFlowCallBack)(ServerConnection *sCon, appInt16 fingerPrint, appInt16 newFlow, FlowHandler::Streamer *streamer);
 
-	ServerConnection(appInt port, appByte *ip = (appByte *) "0.0.0.0") :
-			BaseReliableObj(NULL), listeningIp(ip), localPort(port), threadRunning(FALSE),
-			threadId(0), connection(NULL), clients(), pendingClients(),
-			newDataCallBackData(NULL), primaryInterfaceId(1), validateNewClient(NULL), newFlowCB(NULL)
-	{
-		sem_init(&acceptNewFlow, 0, 0);
-	}
-	virtual ~ServerConnection();
-	virtual appSInt sendPacketTo(appInt id, Packet *pkt, struct sockaddr_in *dest_addr, socklen_t addrlen);
-	virtual appSInt recvPacketFrom(Packet *pkt);
-	virtual appSInt sendData(appByte *data, appInt dataLen){return -1;};
-	virtual appInt timeoutEvent(appTs time);
+    ServerConnection(appInt port, appByte *ip = (appByte *) "0.0.0.0");
+    virtual ~ServerConnection();
+    virtual appSInt sendPacketTo(appInt id, Packet *pkt);
+    virtual appSInt recvPacketFrom(Packet *pkt, RecvSendFlags &flags);
+    virtual appSInt sendData(appByte *data, appInt dataLen){return -1;};
+    virtual appInt timeoutEvent(appTs time);
 
-	virtual appSInt readData(appInt16 fPrint, appInt16 flowId, appByte *data, appInt size);
-	virtual appSInt sendData(appInt16 fPrint, appInt16 flowId, appByte *data, appInt size);
-	void setClientValidator(validateNewClientCallBack v){validateNewClient = v;}
-	void setNewFlowCallBack(newFlowCallBack f){newFlowCB = f;}
-	appStatus startServer();
-	void waitToJoin();
-	virtual appStatus closeFlow(appInt16 flowId){assert("NOT ALLOWED" && 0); return APP_FAILURE;}
-	appStatus closeFlow(appInt16 fp, appInt16 flowId);
-	void closeClient(ClientDetails *client);
+    virtual appSInt readData(appInt32 flowId, appByte *data, appInt size);
+    virtual appSInt sendData(appInt32 flowId, appByte *data, appInt size);
+    void setClientValidator(validateNewClientCallBack v){validateNewClient = v;}
+    void setNewFlowCallBack(newFlowCallBack f){newFlowCB = f;}
+    appStatus startServer();
+    void waitToJoin();
+    virtual appStatus closeFlow(appFlowIdType flowId){assert("NOT ALLOWED" && 0); return APP_FAILURE;}
+    appStatus closeFlow(appInt32 flowId);
 
-	static void *startServerInsideThread(void *data, appThreadInfoId tid);
-	static void evTimerExpired(EV_P_ ev_timer *w, int revents);
-	virtual inline TimeOutProducer &timeoutProducer(void) {return timeoutProd;}
-    void getOption(APP_TYPE::APP_GET_OPTION optType, void *optionValue, appInt optionValueLen, void *returnValue = NULL, appInt returnValueLen = 0);
-	virtual UTIL::WorkerThread *getWorker(WorkerType type);
+    virtual inline TimeOutProducer &timeoutProducer(void) {return timeoutProd;}
 
+    virtual util::WorkerThread *getWorker(WorkerType type);
+    virtual void listen(appInt count=5);
+    virtual appInt32 acceptFlow();
+    virtual inline appBool isServer(void) {return TRUE;}
+    virtual inline appBool isClient(void) {return FALSE;}
+    void newFlowNoticfication(appInt16 clientId);
+
+    virtual inline InterfaceMonitor *getInterfaceMontor(){return ifcMon;}
 private:
-	PacketIpHeader *getIpHeaders(appInt8 *ohcnt);
-	appByte *listeningIp;
-	appInt localPort;
-	appBool threadRunning;
-//	struct ev_loop *loop;
-	pthread_t threadId;
-	ev_timer timer;
-	PacketEventHandler *connection;
-	sem_t acceptNewFlow;
-	std::map<appInt16, ClientDetails *> clients, pendingClients;
-	void *newDataCallBackData;
-	TimeOutProducer timeoutProd;
-	appInt8 primaryInterfaceId;
-	virtual appSInt readData(appInt16 flowId, appByte *data, appInt size) {APP_ASSERT_MSG(0, "INVALID"); return 0;};
-	virtual appSInt sendData(appInt16 flowId, appByte *data, appInt size) {APP_ASSERT_MSG(0, "INVALID"); return 0;};
+
+    PacketIpHeader *getIpHeaders(appInt8 *ohcnt);
+    appByte *listeningIp;
+    appInt localPort;
+    appBool threadRunning;
+    pthread_t threadId;
+
+    PacketEventHandler *connection;
+    void *newDataCallBackData;
+    TimeOutProducer timeoutProd;
+
+    virtual appSInt readData(appFlowIdType flowId, appByte *data, appInt size) {APP_ASSERT_MSG(0, "INVALID"); return 0;};
+    virtual appSInt sendData(appFlowIdType flowId, appByte *data, appInt size) {APP_ASSERT_MSG(0, "INVALID"); return 0;};
     void setupIterface();
+    appInt64 getNonce(Packet *pkt);
     validateNewClientCallBack validateNewClient;
     newFlowCallBack newFlowCB;
-    std::map<WorkerType, UTIL::WorkerThread *> workers;
-    std::mutex getWorkerMutex;
+    std::map<WorkerType, util::WorkerThread *> workers;
+    util::AppMutex getWorkerMutex;
+
+    std::map<appInt16, std::shared_ptr<Client4Server> > clients; //Active Clients
+    std::map<appInt64, appInt16> nonce2FingerPrint;
+    std::map<appInt16, appInt64> fingerPrint2Nonce;
+    std::map<appInt16, std::shared_ptr<Client4Server> > pendingClients; //accepted clients
+
+    appInt maxWaiting;
+    InterfaceMonitor *ifcMon;
+
+    std::unordered_map<appInt16, appInt> pendingFlowClientId;
+    util::AppSemaphore acceptSem;
+    util::AppSemaphore newFlowNotificationSem;
+    util::AppMutex acceptLock;
+    appTs lastTimeout;
 };
 
+}// namespace server
 
 #endif /* SRC_TUNNELLIB_SERVERCONNECTION_HPP_ */

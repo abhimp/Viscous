@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,34 +29,34 @@
 #include <sstream>
 #include <iostream>
 #include "SearchMac.hh"
-#include "../PacketPool.h"
+#include "../PacketPool.hh"
 
 
-SendThroughInterface::SendThroughInterface(appString intf, ether_addr dst_addr, in_addr src_ip, appInt src_port):
-	src_ip(src_ip), e_dst_addr(dst_addr), device(), src_port(src_port),
-//	socket_descriptor(0),
-	noDestMac(FALSE), opSock(NULL)
-//	sendingTid(0), sendingThreadRunning(FALSE), stopSendingThread(FALSE), begQ(NULL), endQ(NULL), sizeQ(0)
-{
-	strcpy(interface, (char *)intf);
-}
+//SendThroughInterface::SendThroughInterface(appString intf, ether_addr dst_addr, in_addr src_ip, appInt src_port):
+//    src_ip(src_ip), e_dst_addr(dst_addr), device(), src_port(src_port),
+////    socket_descriptor(0),
+//    noDestMac(FALSE), opSock(NULL)
+////    sendingTid(0), sendingThreadRunning(FALSE), stopSendingThread(FALSE), begQ(NULL), endQ(NULL), sizeQ(0)
+//{
+//    strcpy(interface, (char *)intf);
+//}
 
 SendThroughInterface::SendThroughInterface(appString intf, in_addr src_ip, appInt src_port):
-	src_ip(src_ip), device(), src_port(src_port),
-//	socket_descriptor(0),
-	noDestMac(TRUE), opSock(NULL)
-//	sendingTid(0), sendingThreadRunning(FALSE), stopSendingThread(FALSE), begQ(NULL), endQ(NULL), sizeQ(0)
+    src_ip(src_ip), device(), src_port(src_port),
+//    socket_descriptor(0),
+    noDestMac(TRUE), opSock(NULL)
+//    sendingTid(0), sendingThreadRunning(FALSE), stopSendingThread(FALSE), begQ(NULL), endQ(NULL), sizeQ(0)
 {
-	strcpy(interface, (char *)intf);
+    strcpy(interface, (char *)intf);
 }
 
 SendThroughInterface::SendThroughInterface(InterfaceAddr *localAddr):
-	src_ip(localAddr->ifcIp), gw_ip(localAddr->gwIp), e_dst_addr(localAddr->gwMac), device(),
-	src_port(localAddr->localPort),
-//	socket_descriptor(0),
-	noDestMac(FALSE), opSock(NULL)//sendingTid(0), sendingThreadRunning(FALSE), stopSendingThread(FALSE), begQ(NULL), endQ(NULL), sizeQ(0)
+    src_ip(localAddr->ifcIp), gw_ip(localAddr->gwIp), e_dst_addr(localAddr->gwMac), device(),
+    src_port(localAddr->localPort),
+//    socket_descriptor(0),
+    noDestMac(FALSE), opSock(NULL)//sendingTid(0), sendingThreadRunning(FALSE), stopSendingThread(FALSE), begQ(NULL), endQ(NULL), sizeQ(0)
 {
-	strcpy(interface, (char *)localAddr->ifc);
+    strcpy(interface, (char *)localAddr->ifc);
 }
 
 SendThroughInterface::~SendThroughInterface() {
@@ -73,21 +73,21 @@ void SendThroughInterface::settingUpDestinationMac(ether_addr &destMac) {
 
 int SendThroughInterface::init(){
 
-	int sd; //socket descriptor
+    int sd; //socket descriptor
 
-	// Submit request for a socket descriptor to look up interface.
-	if ((sd = socket (AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
-		perror ("socket() failed to get socket descriptor for using ioctl() ");
-		return -1;
-	}
-	struct ifreq ifr;
-	std::strcpy(ifr.ifr_ifrn.ifrn_name, interface);
+    // Submit request for a socket descriptor to look up interface.
+    if ((sd = socket (AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
+        perror ("socket() failed to get socket descriptor for using ioctl() ");
+        return -1;
+    }
+    struct ifreq ifr;
+    std::strcpy(ifr.ifr_ifrn.ifrn_name, interface);
 
-	if (ioctl (sd, SIOCGIFHWADDR, &ifr) < 0) {
-		perror ("ioctl() failed to get source MAC address");
-		return 1;
-	}
-	close (sd);
+    if (ioctl (sd, SIOCGIFHWADDR, &ifr) < 0) {
+        perror ("ioctl() failed to get source MAC address");
+        return 1;
+    }
+    close (sd);
 
     // Copy source MAC address.
     std::memcpy (e_src_addr.ether_addr_octet, ifr.ifr_hwaddr.sa_data, 6);
@@ -151,7 +151,7 @@ int SendThroughInterface::init(){
 
     opSock = Interface::SendingSocket::getInstance();
 
-	return 0;
+    return 0;
 }
 
 
@@ -284,13 +284,13 @@ int SendThroughInterface::sendPkt(Packet* pkt, in_addr dst_ip,
     msg->device = device;
     msg->deviceLen = sizeof(device);
 
-	// Total length of datagram (16 bits): IP header + UDP header + datalen
-	iphdr.ip_len = htons (IP4_HDRLEN + UDP_HDRLEN + a_datalen);
-	iphdr.ip_dst = dst_ip;
-	iphdr.ip_sum = 0;
-	iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
+    // Total length of datagram (16 bits): IP header + UDP header + datalen
+    iphdr.ip_len = htons (IP4_HDRLEN + UDP_HDRLEN + a_datalen);
+    iphdr.ip_dst = dst_ip;
+    iphdr.ip_sum = 0;
+    iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
 
-	// Destination port number (16 bits): pick a number
+    // Destination port number (16 bits): pick a number
     udpHeader.dest = dst_port;
 
     // Length of UDP datagram (16 bits): UDP header + UDP data
@@ -310,17 +310,25 @@ int SendThroughInterface::sendPkt(Packet* pkt, in_addr dst_ip,
     // UDP header
     memcpy (msg->ether_frame + IP4_HDRLEN, &udpHeader, UDP_HDRLEN);
 
-    opSock->sendMsg(msg);
+    auto ret = opSock->sendMsgDirectly(msg);
 
-    return 0;
+    return ret;
 }
 
 SendThroughInterface** getInterfaceSender() {
-	static SendThroughInterface *interfaceSender[INTERFACE_SENDER_CNT] = {NULL}; //0 will never used
-	return interfaceSender;
+    static SendThroughInterface *interfaceSender[INTERFACE_SENDER_CNT] = {NULL}; //0 will never used
+    return interfaceSender;
 }
 
 InterfaceInfo** getInterfaceInfos() {
     static InterfaceInfo *interfaceInfos[INTERFACE_SENDER_CNT] = {NULL}; //0 will never used
     return interfaceInfos;
+}
+
+void SendThroughInterface::getIface(appString iface, appInt len) {
+    if(!iface or !len)
+        return;
+    if(len <= strlen(interface))
+        return;
+    strcpy((char *)iface, interface);
 }

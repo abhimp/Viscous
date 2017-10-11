@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,8 @@
 #ifndef SRC_UTIL_CONDITONALWAIT_HPP_
 #define SRC_UTIL_CONDITONALWAIT_HPP_
 #include <semaphore.h>
+
+namespace util {
 
 class ConditionalWait{
     sem_t sem1, sem2;
@@ -73,6 +75,17 @@ public:
     void notify(){
         sem_post(&sem1);
     }
+    int val(){
+        int sval = 0;
+        auto ret = sem_getvalue(&sem1, &sval);
+        if(!ret)
+            return -1;
+        return sval;
+    }
 };
+
+}  // namespace util
+
+
 
 #endif /* SRC_UTIL_CONDITONALWAIT_HPP_ */

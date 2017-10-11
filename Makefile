@@ -13,6 +13,7 @@ CFLAGS          := \
                 -Wno-sign-compare \
                 -I"src/common_lib/header" \
                 -Wall -c \
+                -DNEW_CHANNEL_HANDLE \
                 -DEV_STANDALONE=1 \
                 -pthread
 
@@ -21,6 +22,7 @@ CCFLAGS         := \
                 -Wno-sign-compare \
                 -I"src/common_lib/header" \
                 -Wall \
+                -DNEW_CHANNEL_HANDLE \
                 -DEV_STANDALONE=1 \
                 -fmessage-length=0 \
                 -pthread
@@ -36,21 +38,25 @@ _SUBDIRS        := \
                 src/common_lib \
                 src/common_lib/header \
                 src/TunnelLib \
-                src/TunnelLib/ARQ \
+                src/TunnelLib/FlowHandler \
                 src/TunnelLib/InterfaceController \
                 src/util \
-                test 
+                test \
+
 
 OUTDIR          := Debug
 
 _COMMON_LIB_OBJ := \
                 src/common_lib/common.o \
                 src/common_lib/appThread.o \
-                src/common_lib/network.o
+                src/common_lib/network.o \
 
-_ARQ_OBJ        := \
-                src/TunnelLib/ARQ/Streamer.o \
-                src/TunnelLib/ARQ/StreamHandler.o 
+
+_FLOW_HANDLER_OBJ        := \
+                src/TunnelLib/FlowHandler/Streamer.o \
+                src/TunnelLib/FlowHandler/StreamHandler.o \
+                src/TunnelLib/FlowHandler/NewFlowHandler.o \
+
 
 _INTERFACE_CONTROLLER_OBJ := \
                 src/TunnelLib/InterfaceController/ValueType.o \
@@ -58,49 +64,64 @@ _INTERFACE_CONTROLLER_OBJ := \
                 src/TunnelLib/InterfaceController/Addresses.o \
                 src/TunnelLib/InterfaceController/SendThroughInterface.o \
                 src/TunnelLib/InterfaceController/SendingSocket.o \
-                src/TunnelLib/InterfaceController/arpResolv.o 
+                src/TunnelLib/InterfaceController/arpResolv.o \
+				src/TunnelLib/InterfaceController/InterfaceMonitor.o \
+
+
+_CHANNEL_HANDLER_OBL := \
+                src/TunnelLib/ChannelHandler/ChannelHandler.o \
+                src/TunnelLib/ChannelHandler/BasicChannelHandler.o \
+                src/TunnelLib/ChannelHandler/SackNewRenoChannelHandler.o \
+                src/TunnelLib/ChannelHandler/NewChannelHandler.o \
+
 
 _TUNNEL_LIB_OBJ := \
                 src/TunnelLib/PacketEventHandler.o \
                 src/TunnelLib/multiplexer.o \
-                src/TunnelLib/SackNewRenoChannelHandler.o \
-                src/TunnelLib/BasicChannelHandler.o \
                 src/TunnelLib/PacketPool.o \
                 src/TunnelLib/CommonHeaderImpl.o \
-                src/TunnelLib/InterfaceScheduler.o \
-                src/TunnelLib/ChannelHandler.o \
+                src/TunnelLib/ChannelScheduler/InterfaceScheduler.o \
+				src/TunnelLib/ChannelScheduler/NewChannelScheculer.o \
                 src/TunnelLib/Packet.o \
                 src/TunnelLib/ClientConnection.o \
-                src/TunnelLib/log.o \
                 src/TunnelLib/Connection.o \
                 src/TunnelLib/PendingAcks.o \
                 src/TunnelLib/ServerConnectionClientDetail.o \
                 src/TunnelLib/ServerConnection.o \
-                $(_ARQ_OBJ) \
+                $(_FLOW_HANDLER_OBJ) \
+                $(_CHANNEL_HANDLER_OBL) \
                 $(_INTERFACE_CONTROLLER_OBJ)
 
-#                src/TunnelLib/CubicChannelHandler.o 
+#                src/TunnelLib/ChannelHandler/CubicChannelHandler.o 
+#                src/TunnelLib/ChannelHandler/log.o 
 
 _UTIL_OBJ       := \
                 src/util/ThreadPool.o \
                 src/util/Logger.o \
-                src/util/libev.o \
-                src/util/LinuxMath.o 
+                src/util/LinuxMath.o \
+                src/util/AppThread.o \
+
+#                src/util/libev.o \
+
 
 _EVAL_OBJ       := \
                 evaluation/testThreadPool.o \
-                evaluation/Main.o \
-                evaluation/PacketHijacking.o \
                 evaluation/TrafficGenerator.o \
                 evaluation/test_distribution.o \
                 evaluation/TcpTrafficGenerator.o \
-                evaluation/TcpMultiplexingTrafficGenerator.o 
+				evaluation/ListentoNetworkEvents.o \
+				evaluation/QualityTest.o \
+				evaluation/TimeTest.o \
+                evaluation/Main.o \
+
+#                evaluation/TcpMultiplexingTrafficGenerator.o \
+#                evaluation/PacketHijacking.o \
 
 OUTDIR          := $(DEBUG_OUTDIR)
 
 ifeq ($(release), yes)
-	OUTDIR := $(RELEASE_OUTDIR)
-	DEBUG_FLAG := $(RELASE_FLAG)
+    OUTDIR := $(RELEASE_OUTDIR)
+    DEBUG_FLAG := $(RELASE_FLAG)
 endif
 
 
@@ -109,7 +130,8 @@ _OBJS           += ${_UTIL_OBJ}
 _OBJS           += ${_TUNNEL_LIB_OBJ}
 _OBJS           += ${_EVAL_OBJ}
 
-LIBS            := -lnfnetlink -lnetfilter_queue
+LIBS            := 
+#-lnfnetlink -lnetfilter_queue
 
 
 COMMON_LIB_OBJ  := $(patsubst %,$(OUTDIR)/%,$(_COMMON_LIB_OBJ))
@@ -126,21 +148,41 @@ EVAL_DEP        := $(patsubst %.o,%.d,$(EVAL_OBJ))
 DEPS            := $(patsubst %.o,%.d,$(OBJS))
 
 #=========================================
+.PHONY: clean doxy doxy-clean all deps
+
+.SECONDARY:
+
 all: $(OUTDIR)/$(OUTPUT_BINARY)
 
-ifneq ($(MAKECMDGOALS),clean)
+LOAD := no
+
+ifeq (clean, $(filter clean, $(MAKECMDGOALS)))
+    LOAD := no
+else ifeq (all, $(filter all, $(MAKECMDGOALS)))
+    LOAD := yes
+else ifndef $(MAKECMDGOALS)
+    LOAD := yes
+endif
+
+ifeq ($(LOAD), yes)
 -include $(DEPS)
 endif
 
 clean:
 	rm -rf $(OBJS) $(DEPS) 
 	rm -rf $(OUTDIR)/$(OUTPUT_LIB_OBJ) $(OUTDIR)/$(OUTPUT_BINARY)
+	rm -rf $(OUTDIR)
+
+doxy-clean: 
+	@rm -rf html latex
+doxy:
+	doxygen Doxyfile
 
 $(OUTDIR)/$(OUTPUT_LIB_OBJ): $(COMMON_LIB_OBJ) $(UTIL_OBJ) $(TUNNEL_LIB_OBJ)
 	@echo 'archiving'
 	@$(AR) -rv $@ $^
 
-$(OUTDIR)/ViscousTest: $(OUTDIR)/$(OUTPUT_LIB_OBJ) $(EVAL_OBJ)
+$(OUTDIR)/$(OUTPUT_BINARY): $(OUTDIR)/$(OUTPUT_LIB_OBJ) $(EVAL_OBJ)
 	@echo "LD 	$@"
 	@$(LINK) -pthread -o $@ $(EVAL_OBJ) -L $(OUTDIR) $(LIBS) -l$(OUTPUT_LIBRARY)
 
@@ -162,7 +204,7 @@ $(OUTDIR)/src/util/libev.o: src/util/libev.cc $(OUTDIR)/src/util/libev.d
 #=======Dependancy====
 $(OUTDIR)/%.d: %.c
 	@mkdir -p $(dir $@)
-	@echo "DEPS 	$^"
+	@echo "DEPS 	$@"
 	@$(CC) $(CFLAGS) $(DEBUG_FLAG) -MG -MM -MT "$@" -MF"$@" $<
 
 $(OUTDIR)/%.d: %.cc

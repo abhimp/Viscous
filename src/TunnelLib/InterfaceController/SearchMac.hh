@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -74,10 +74,12 @@ struct cmp_str
    }
 };
 
-typedef std::map<appString, in_addr_t, cmp_str> interfaceIPVector;
+typedef std::map<appString, in_addr_t, cmp_str> interfaceIPMap;
+typedef std::map<in_addr_t, std::pair<appString, in_addr_t> > interfaceIPGWMap; //iname, gw
+//typedef std::map<appString, in_addr_t, cmp_str> interfaceIPVector;
 typedef std::map<SearchMacType, Value *> ifaceDetail;
-interfaceIPVector getAllGatewayAndIface();
-interfaceIPVector getAllIp();
+interfaceIPMap getAllGatewayAndIface();
+interfaceIPMap getAllIp();
 int getGatewayAndIface(in_addr_t * addr, char *interface);
 int getMac(char *searchIp, char *chwaddr, struct ether_addr *hwaddr);
 int getMacR(char *ifc, char *searchIp, char *c_hwaddr, struct ether_addr *e_hwaddr);
@@ -87,5 +89,6 @@ std::set<InterfaceInfo> getInterfaceInfos(void);
 
 std::set<InterfaceInfo> getInterfaceInfos(void);
 std::set<InterfaceInfo> getInterfaceAndIp(void);
+interfaceIPGWMap getAllGatewayAndIfaceUsingIfHack();
 }
 #endif /* SEARCHMAC_H_ */

@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ int app_tcp_listener_ip(int port , in_addr_t ip)
 
         int optval = 1;
         setsockopt(listener_d, SOL_SOCKET, SO_REUSEADDR,
-        	     (const void *)&optval , sizeof(int));
+                 (const void *)&optval , sizeof(int));
         // BIND
         struct sockaddr_in name;
         name.sin_family = AF_INET;
@@ -43,8 +43,8 @@ int app_tcp_listener_ip(int port , in_addr_t ip)
         int c = bind(listener_d, (struct sockaddr *)&name, sizeof(name));
         if(c){
             LOGW("Can't bind the port");
-			return -1;
-		}
+            return -1;
+        }
 
         //LISTEN
         if(listen(listener_d, 10) == -1)
@@ -67,11 +67,11 @@ int app_udp_listener_ip(int port , in_addr_t ip)
         int c = bind(listener_d, (struct sockaddr *)&name, sizeof(name));
         if(c){
             LOGW("Can't bind the port");
-			return -1;
-		}
+            return -1;
+        }
 
         setsockopt(listener_d, SOL_SOCKET, SO_REUSEADDR,
-        	     (const void *)&optval , sizeof(int));
+                 (const void *)&optval , sizeof(int));
         //LISTEN
 //        if(listen(listener_d, 10) == -1)
 //                LOGW("Can't listen");
@@ -80,17 +80,17 @@ int app_udp_listener_ip(int port , in_addr_t ip)
 
 int app_tcp_client_connect_ip(int port, in_addr_t ip)
 {
-	struct sockaddr_in server_addr;
-	int client_fd = socket(AF_INET, SOCK_STREAM, 0);
-	
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(port);
-	server_addr.sin_addr.s_addr = ip;
-	if(connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)))
-	{
-		LOGW("Could not connect\n");
-		perror("Cloud not connect");
-		return -1;
-	}
-	return client_fd;
+    struct sockaddr_in server_addr;
+    int client_fd = socket(AF_INET, SOCK_STREAM, 0);
+    
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = ip;
+    if(connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)))
+    {
+        LOGW("Could not connect\n");
+        perror("Cloud not connect");
+        return -1;
+    }
+    return client_fd;
 }

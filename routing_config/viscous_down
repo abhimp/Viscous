@@ -1,0 +1,35 @@
+#!/bin/sh
+# A script for setting up routing tables for MPTCP in the N950.
+
+# Copy this script into /etc/network/if-post-down.d/
+
+
+if [ "$IFACE" = lo -o "$MODE" != stop ]; then
+    exit 0
+fi
+
+
+dir_name="/tmp/viscous_ifconf"
+file_name=$dir_name/"$CONNECTION_UUID"
+if [ -e $file_name ]
+then
+    source $file_name
+    rm $file_name
+fi
+
+dir_name="/tmp/viscous_proc"
+file_name=$dir_name/"$CONNECTION_UUID"
+
+
+if [ -d  "$dir_name" ] 
+then
+    for pid in `ls "$dir_name"`
+    do
+        file_name="$dir_name"/$pid
+        python -c "import os; fp = os.open('$file_name', os.O_WRONLY|os.O_NONBLOCK); os.write(fp, 'ifdown $iface $ip $gw'); os.close(fp)"
+        if [[ $? -ne 0 ]]
+        then
+            rm $file_name
+        fi
+    done
+fi

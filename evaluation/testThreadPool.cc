@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,10 +26,10 @@
 
 #include <iostream>
 #include <unistd.h>
-#include "../src/util/ThreadPool.h"
 #include <common.h>
+#include "../src/util/ThreadPool.hh"
 
-std::mutex fprintlock;
+util::AppMutex fprintlock;
 void f1(int n, int id)
 {
     for (int i = 0; i < 5; ++i) {
@@ -68,7 +68,7 @@ void *runinthreadtest(void *data){
 
 int threadTest()
 {
-    UTIL::ThreadPool p(15);
+    util::ThreadPool p(15);
     p.run();
     int fn, n;
     for(auto i = 0; i < 15; i++){

@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -31,9 +31,9 @@
 #include <iostream>
 #include "TcpTrafficGenerator.h"
 #include "test_distribution.h"
-#include "../src/util/ThreadPool.h"
 #include <netinet/tcp.h>
 #include "../src/TunnelLib/CommonHeaders.hh"
+#include "../src/util/ThreadPool.hh"
 
 namespace TcpTrafficGeneratorReciever{
 
@@ -47,7 +47,7 @@ void *recvConn(void *data, appThreadInfoId tid){
     appInt readSize;
     appChar buf[2048];
 
-    AppTimeCla time;
+    AppTimeClass time;
     appInt64 byteReceived = 0;
     auto startTime = time.getTime().getMicro();
 
@@ -100,7 +100,7 @@ void startClient(appByte *serverIp, appInt serverPort, appByte *fpath){
     appInt readlen;
     tcp_info tcpInfo;
     int tcpInfoLen = sizeof(tcpInfo);
-    AppTimeCla time;
+    AppTimeClass time;
     auto startTime = time.getTime().getMicro();
     clientFd = app_tcp_client_connect_str(serverPort, (char *)serverIp);
     std::ifstream fin((char *)fpath);
@@ -148,8 +148,8 @@ void *sendData(void *data){
     appInt index;
     appByte *dt;
     appInt dtLen;
-    AppSemaphore *sem;
-    AppTimeCla time;
+    util::AppSemaphore *sem;
+    AppTimeClass time;
     appInt numConn;
     tcp_info tcpInfo;
     int tcpInfoLen = sizeof(tcpInfo);
@@ -157,7 +157,7 @@ void *sendData(void *data){
 
     APP_UNPACK((appByte *)data, serverIp, serverPort, index, numConn, dt, dtLen, sem);
     sem->notify();
-    for(auto conIndex = 0; conIndex < numConn; conIndex++){
+    for(appInt conIndex = 0; conIndex < numConn; conIndex++){
         auto conId = index*numConn + conIndex;
         LOGI("testflowtrace2: %d, %ld", conId, time.getTime().getMicro());
         auto clientFd = app_tcp_client_connect_str(serverPort, (char *)serverIp);
@@ -195,8 +195,8 @@ void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt 
     appByte *buffer;
     appByte dt[1290];
     appInt dtLen = sizeof(dt);
-    AppSemaphore semObj;
-    AppSemaphore *sem = &semObj;
+    util::AppSemaphore semObj;
+    util::AppSemaphore *sem = &semObj;
     for(appInt x = 0; x < sizeof(dt); x++){
         dt[x] = std::rand();
     }
@@ -204,7 +204,7 @@ void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt 
     appByte *data;
     buffer = dt;
 
-    UTIL::ThreadPool pool(numThread);
+    util::ThreadPool pool(numThread);
     pool.run();
     for(appInt i = 0; i < numThread; i++){
         data = APP_PACK(serverIp, serverPort, i, numConn, buffer, dtLen, sem);
@@ -223,8 +223,8 @@ void *sendData(void *data){
     appInt index;
     appByte *dt;
     appInt dtLen;
-    AppSemaphore *sem;
-    AppTimeCla time;
+    util::AppSemaphore *sem;
+    AppTimeClass time;
     APP_UNPACK((appByte *)data, serverIp, serverPort, index, dt, dtLen, sem);
     sem->notify();
     LOGI("testflowtrace2: %d, %ld", index, time.getTime().getMicro());
@@ -242,8 +242,8 @@ void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt 
     appByte *buffer;
     appByte dt[1290];
     appInt dtLen = sizeof(dt);
-    AppSemaphore semObj;
-    AppSemaphore *sem = &semObj;
+    util::AppSemaphore semObj;
+    util::AppSemaphore *sem = &semObj;
     for(appInt x = 0; x < sizeof(dt); x++){
         dt[x] = std::rand();
     }
@@ -251,7 +251,7 @@ void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt 
     appByte *data;
     buffer = dt;
 
-    UTIL::ThreadPool pool(numThread);
+    util::ThreadPool pool(numThread);
     pool.run();
     for(appInt i = 0; i < numConn; i++){
         data = APP_PACK(serverIp, serverPort, i, buffer, dtLen, sem);

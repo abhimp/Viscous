@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,9 @@
 
 #include <common.h>
 #include <arpa/inet.h>
-#include "../../util/AppStack.hh"
+
+#include "../util/AppLLQueue.hh"
+#include "../util/AppStack.hh"
 
 #define EMPTY_FINGER_PRINT 0
 
@@ -85,13 +87,37 @@ enum OptionalHeaderType{
     OPTIONAL_PACKET_HEADER_TYPE_INVALID = 0,
     OPTIONAL_PACKET_HEADER_TYPE_ACK_HEADER,
     OPTIONAL_PACKET_HEADER_TYPE_IP_ADDR,
+    OPTIONAL_PACKET_HEADER_TYPE_NONCE_HEADER,
+    OPTIONAL_PACKET_HEADER_TYPE_IP_CHANGE,
+    OPTIONAL_PACKET_HEADER_TYPE_READ_HEADER,
 };
 
 struct PacketOptionalAbstractHeader{
-    PacketOptionalAbstractHeader(appInt8 len, OptionalHeaderType type):next(NULL), len(len+2), type(type){}
+    PacketOptionalAbstractHeader(appInt16 len, OptionalHeaderType type):next(NULL), len_(len+4), type(type){}
+    virtual ~PacketOptionalAbstractHeader(){};
     PacketOptionalAbstractHeader *next;
-    appInt8 len; // in byte
+    appInt16 len_; // in byte
+    appInt8 pad_;
     OptionalHeaderType type;
+    virtual appInt16 len(){return len_;}
+};
+
+struct ReceiverInfo{
+    ReceiverInfo():next(NULL), flowId(0), readUpto(0){}
+    ReceiverInfo *next;
+    appInt16 flowId;
+    appInt16 readUpto;
+};
+
+struct PacketReadHeader : public PacketOptionalAbstractHeader{
+    PacketReadHeader(): PacketOptionalAbstractHeader(2, OPTIONAL_PACKET_HEADER_TYPE_READ_HEADER), readerInfo(NULL), count(0){}
+    ~PacketReadHeader();
+    ReceiverInfo *readerInfo;
+    appInt16 count;
+    void addInfo(appInt16 flowId, appInt16 readUpto);
+    appInt16 decode(appByte *data, appInt dataLen);
+    appInt16 encode(appByte *data, appInt dataLen);
+    virtual appInt16 len();
 };
 
 struct PacketAckHeader : public PacketOptionalAbstractHeader
@@ -107,6 +133,27 @@ struct PacketIpHeader : public PacketOptionalAbstractHeader //
     appInt8 ifcId; //value wont be more than 15
     appInt8 ifcType; //wlan or ether net
     appInt32 ip;
+};
+
+struct PacketIpChngHeader : public PacketOptionalAbstractHeader //
+{
+//    enum IPEvent { IP_REMOVED, IP_ADDED };
+    PacketIpChngHeader(): PacketOptionalAbstractHeader(2, OPTIONAL_PACKET_HEADER_TYPE_IP_CHANGE), ifcId(0), ifcInfo(0){}
+    appInt8 ifcId; //value wont be more than 15
+    union{
+        appInt8 ifcInfo;
+        struct{
+        appInt8 ifcType:2, //wlan or ether net
+                removed:1, // removed(1);
+                added:1;
+        };
+    };
+};
+
+struct PacketNonceHeader : public PacketOptionalAbstractHeader
+{
+    PacketNonceHeader() : PacketOptionalAbstractHeader(8, OPTIONAL_PACKET_HEADER_TYPE_NONCE_HEADER), nonce(0){}
+    appInt64 nonce;
 };
 
 struct PacketHeader{
@@ -160,21 +207,26 @@ struct PacketHeader{
 
 };
 
-class Packet{
+class Packet:public util::LL_Node{
 public:
-	Packet(): APP_LL_INIT_LIST, capa(0), len(0), header(), data(NULL), accepted(FALSE), optHeaders(NULL){}
-	void reInitHeader(){APP_LL_RESET; len = 0; header.reinit(); accepted = FALSE; optHeaders = NULL;};
-	APP_LL_DEFINE(Packet);
-	appInt capa;
-	appInt len;
-	PacketHeader header;
+    Packet(): util::LL_Node(), capa(0), len(0), header(), data(NULL), accepted(FALSE), newFlow(FALSE), processed(FALSE), recvTS(0), optHeaders(NULL){}
+    void reInitHeader(){len = 0; header.reinit(); accepted = FALSE; newFlow = FALSE; processed = FALSE; recvTS = 0; optHeaders = NULL;};
+    appInt capa;
+    appInt len;
+    PacketHeader header;
     appByte *data;
-    appBool accepted;
+    appByte accepted:1,
+            newFlow:1,
+            processed:1;
+    appSInt64 recvTS;
     sockaddr_in src_addr;
     sockaddr_in dest_addr;
     PacketOptionalAbstractHeader *optHeaders;
     static const appInt8 maxOptHeader = 16;
-
+    void operator=(Packet other);
+    void operator=(Packet *other);
+    void cloneWithoutData(Packet *pkt);
+    void cloneWithData(Packet *pkt);
 };
 
 appStatus generateFingerPrint(appInt16 *fingerPrint, sockaddr_in &remoteAddr);

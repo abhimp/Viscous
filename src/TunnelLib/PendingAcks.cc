@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,12 +24,19 @@
  *      Author: abhijit
  */
 
-#include "PendingAcks.h"
-#include "PacketPool.h"
+#include "PendingAcks.hh"
+
+#include "PacketPool.hh"
 //#include <iostream>
 
 #define hasKey(_map, _key) (_map.find(_key) != _map.end())
-PendingAcks::PendingAcks() : list(NULL), begin(NULL), listCapa(0), acks(), mtx(){
+PendingAcks::PendingAcks() :
+        list(NULL)
+        , begin(NULL)
+        , listCapa(0)
+        , acks()
+        , mtx()
+{
 
 }
 

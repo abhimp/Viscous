@@ -1,0 +1,65 @@
+#!/bin/sh
+# A script for setting up routing tables for MPTCP in the N950.
+
+# Copy this script into /etc/network/if-up.d/
+
+
+if [ "$IFACE" = lo -o "$MODE" != start ]; then
+    exit 0
+fi
+
+if [ -z $DEVICE_IFACE ]; then
+    exit 0
+fi
+
+dir_name="/tmp/viscous_ifconf"
+file_name=$dir_name/"$CONNECTION_UUID"
+mkdir $dir_name
+chmod 755 $dir_name
+cd $dir_name
+
+IFC=""
+IP=""
+GW=""
+
+IP4_ADDR=`echo $IP4_ADDRESS_0 | cut -d / -f 1`
+IP4_GW=`echo $IP4_ADDRESS_0 | cut -d \   -f 2`
+IP4_SUBNET=`echo $IP4_ADDRESS_0 | cut -d \   -f 1 | cut -d / -f 2`
+
+echo "iface=$DEVICE_IFACE" > $file_name
+echo "ip=$IP4_ADDR" >> $file_name
+echo "gw=$IP4_GW" >> $file_name
+IFC=$DEVICE_IFACE
+IP=$IP4_ADDR
+GW=$IP4_GW
+#if [ $DHCP4_IP_ADDRESS ]; then
+#    echo "iface=$DEVICE_IFACE" > $file_name
+#    echo "ip=$DHCP4_IP_ADDRESS" >> $file_name
+#    echo "gw=$DHCP4_ROUTERS" >> $file_name
+#    IFC=$DEVICE_IFACE
+#    IP=$DHCP4_IP_ADDRESS
+#    GW=$DHCP4_ROUTERS
+#else
+#    echo "iface=$DEVICE_IFACE" > $file_name
+#    echo "ip=$IPADDR" >> $file_name
+#    #echo "gw=$DHCP4_ROUTERS" >> $file_name
+#    IFC=$DEVICE_IFACE
+#    IP=$IPADDR
+#    GW=""
+#fi
+ping -I $IFACE -c 3 $IP
+dir_name="/tmp/viscous_proc"
+file_name=$dir_name/"$CONNECTION_UUID"
+
+if [ -d  "$dir_name" ] 
+then
+    for pid in `ls "$dir_name"`
+    do
+        file_name="$dir_name"/$pid
+        python -c "import os; fp = os.open('$file_name', os.O_WRONLY|os.O_NONBLOCK); os.write(fp, 'ifup $IFC $IP $GW'); os.close(fp)"
+        if [[ $? -ne 0 ]]
+        then
+            rm $file_name
+        fi
+    done
+fi

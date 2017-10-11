@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,11 +24,20 @@
  *      Author: abhijit
  */
 
-#include "PacketPool.h"
+#include "PacketPool.hh"
+
 #include <cstdlib>
 #include <malloc.h>
 //#define NO_POOL
-PacketPool::PacketPool(appInt capa) :packetListing(NULL), pool(), poolCapa(0), poolTop(-1), localPoolTop(0), localPool(NULL), rwlock(), circullarCnt(0)
+PacketPool::PacketPool(appInt capa) :packetListing(NULL)
+        , pool()
+        , poolCapa(0)
+        , poolTop(-1)
+        , localPoolTop(0)
+        , localPool(NULL)
+        , rwlock()
+        , circullarCnt(0)
+        , totalPkt(0)
 {
 
 }
@@ -64,6 +73,7 @@ Packet *PacketPool::getNewPacket(appBool noNewData) {
     if(localPool == NULL or localPoolTop == PACKETS_PER_POOL){
         if(pool.empty()){
             localPool = new Packet[PACKETS_PER_POOL];
+            totalPkt += PACKETS_PER_POOL;
             APP_ASSERT(localPool);
             localPoolTop = 1;
             pkt = &localPool[0];
@@ -118,6 +128,7 @@ void PacketPool::freePacket(Packet *pkt) {
 
 inline void freeOptionalHeaderToPool(PacketOptionalAbstractHeader* pktHdr) {
     while(pktHdr){
+        auto next = pktHdr->next;
         switch(pktHdr->type){
             case OPTIONAL_PACKET_HEADER_TYPE_ACK_HEADER:
                 {
@@ -136,7 +147,7 @@ inline void freeOptionalHeaderToPool(PacketOptionalAbstractHeader* pktHdr) {
             default:
                 APP_ASSERT("invalid header type");
         }
-        pktHdr = pktHdr->next;
+        pktHdr = next;
     }
 }
 
@@ -145,7 +156,7 @@ PacketPool &getPacketPool(){
     return packetPool;
 }
 
-AppPool<PacketAckHeader> &getPacketAckedHeaderPool(){
-    static AppPool<PacketAckHeader> pakcetAckHeaderPool;
+util::AppPool<PacketAckHeader> &getPacketAckedHeaderPool(){
+    static util::AppPool<PacketAckHeader> pakcetAckHeaderPool;
     return pakcetAckHeaderPool;
 }

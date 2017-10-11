@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,12 +22,25 @@
 //#include <stdio.h>
 //#include <stdlib.h>
 #include <unistd.h>
+
+#include "ListentoNetworkEvents.hh"
 #include "TrafficGenerator.h"
 #include "TcpTrafficGenerator.h"
 #include "testThreadPool.h"
 #include "PacketHijacking.h"
 #include "TcpMultiplexingTrafficGenerator.h"
+#include "QualityTest.hh"
+#include "TimeTest.hh"
 
+#include <signal.h>
+
+void my_handler(int signum)
+{
+    if (signum == SIGUSR1)
+    {
+        exit(0);
+    }
+}
 
 struct SetupOptions{
     char *progname;
@@ -42,6 +55,8 @@ struct SetupOptions{
     int numThread;
     int numConn;
     int nfqId;
+    char qualityTest;
+    bool networkMonitor;
 };
 SetupOptions expSetup = {
     .progname = NULL,
@@ -55,7 +70,9 @@ SetupOptions expSetup = {
     .experiment = 1,
     .numThread = 1,
     .numConn = 1,
-    .nfqId = 1
+    .nfqId = 1,
+    .qualityTest = 0,
+    .networkMonitor = false,
 };
 
 
@@ -74,6 +91,7 @@ void usages(std::ostream &strm, char *progname){
     strm << "-T " << std::endl << "\t Number of threads" << std::endl << std::endl;
     strm << "-C " << std::endl << "\t Number of connections" << std::endl << std::endl;
     strm << "-q [nfqId] " << std::endl << "\t NFQ Id for packet hijacking" << std::endl << std::endl;
+    strm << "-N " << std::endl << "\t Test Network (with network hack)" << std::endl << std::endl;
     strm << "-h " << std::endl << "\t show this text" << std::endl << std::endl;
 }
 
@@ -118,8 +136,8 @@ void exp3Client(){
         std::cout << "not implemented yet" << std::endl;
         exit(__LINE__);
     }
-    else
-        PacketHijack::startClient(expSetup.serverIp, expSetup.port, expSetup.nfqId);
+//    else
+//        PacketHijack::startClient(expSetup.serverIp, expSetup.port, expSetup.nfqId);
 }
 
 void exp1(){
@@ -159,6 +177,17 @@ void experiemts(){
     }
 }
 
+void runQtes(char q){
+    switch(q){
+    case 'p':
+        Quality::testPacketWithReadData();
+        break;
+    case 't':
+        TimeTest::timeTest();
+        break;
+    }
+}
+
 int
 main (int argc, char **argv)
 {
@@ -166,11 +195,14 @@ main (int argc, char **argv)
 //    int index;
     int c;
 
+
+    signal(SIGUSR1, my_handler);
+
     opterr = 0;
 
     expSetup.progname = argv[0];
 
-    while ((c = getopt (argc, argv, "sc:f:hp:txe:T:C:q:")) != -1)
+    while ((c = getopt (argc, argv, "sc:f:hp:txNe:T:C:q:Q:")) != -1)
     {
         switch (c)
         {
@@ -209,6 +241,14 @@ main (int argc, char **argv)
             expSetup.nfqId = atoi(optarg);
             break;
 
+        case 'N':
+            expSetup.networkMonitor = true;
+            break;
+
+        case 'Q':
+            expSetup.qualityTest = optarg[0];
+            break;
+
         case '?':
         case 'h':
             usages(std::cout, argv[0]);
@@ -219,7 +259,16 @@ main (int argc, char **argv)
         }
     }
 
-    if(expSetup.test){
+    if(expSetup.qualityTest){
+        runQtes(expSetup.qualityTest);
+        return 0;
+    }
+
+    if(expSetup.networkMonitor){
+        listenOnNetworkEvent();
+        return 0;
+    }
+    else if(expSetup.test){
         threadTest();
         return 0;
     }

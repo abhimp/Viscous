@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,41 +27,70 @@
 #ifndef SRC_TUNNELLIB_SERVERCONNECTIONCLIENTDETAIL_HPP_
 #define SRC_TUNNELLIB_SERVERCONNECTIONCLIENTDETAIL_HPP_
 
-#include "Connection.hh"
-#include "multiplexer.hh"
-#include "InterfaceScheduler.h"
-#include <appThread.h>
+#include <common.h>
+#include <stddef.h>
+#include <unistd.h>
+#include <atomic>
+#include <cassert>
 #include <set>
-#include <map>
+
+#include "../util/AppLLQueue.hh"
+#include "../util/AppThread.hh"
+#include "../util/ConditonalWait.hh"
+#include "appTypes.h"
+#include "ChannelScheduler/NewChannelScheculer.hh"
+#include "ChannelScheduler/InterfaceScheduler.hh"
+#include "CommonHeaders.hh"
+#include "InterfaceController/Addresses.hh"
+#include "multiplexer.hh"
+#include "Packet.h"
+#include "PendingAcks.hh"
+
+namespace server{
 
 class ServerConnection;
 
-class ClientDetails:public BaseReliableObj{
+class Client4Server:public BaseReliableObj, public util::AppThread{
 public:
-	ClientDetails(appInt16 fingerPrint, Multiplexer *mux, ServerConnection *parent);
-	virtual appInt16 getFingerPrint(){return clientFingerPrint;}
-	virtual appSInt sendPacketTo(appInt id, Packet *pkt, struct sockaddr_in *dest_addr, socklen_t addrlen);
-	virtual appSInt recvPacketFrom(Packet *pkt);
-	virtual appInt timeoutEvent(appTs time);
-	virtual void setMux(Multiplexer *mux){this->mux = mux;};
-	inline appBool isValidFlow(appInt16 flowId){return mux and mux->isValidFlow(flowId);}
-	virtual ARQ::Streamer *addNewFlow(Packet *pkt, sockaddr_in &src_addr, sockaddr_in &dest_addr);
-	virtual appSInt readData(appInt16 flowId, appByte *data, appInt size);
-	virtual appSInt sendData(appInt16 flowId, appByte *data, appInt size);
-	virtual appStatus closeFlow(appInt16 flowId){return mux->closeFlow(flowId);};
-	virtual void setupInterfaces(appInt8 ifcRem, sockaddr_in &remAddr);
-	virtual inline PendingAcks &pendingAcks(void) {return pendAck;}
-	virtual void getOption(APP_TYPE::APP_GET_OPTION optType, void *optionValue, appInt optionValueLen, void *returnValue = NULL, appInt returnValueLen = 0);
-	virtual void close();
-	inline virtual appSInt recvAck(appInt16 flowId, appInt16 flowFeqNo) {assert(mux); return mux->recvAck(flowId, flowFeqNo);};
+    Client4Server(appInt16 fingerPrint, Multiplexer *mux, ServerConnection *parent);
+    virtual ~Client4Server();
+    virtual appInt16 getFingerPrint(){return clientFingerPrint;}
+    virtual appSInt sendPacketTo(appInt id, Packet *pkt);
+    virtual appSInt recvPacketFrom(Packet *pkt, RecvSendFlags &flags);
+    virtual appInt timeoutEvent(appTs time);
+    virtual void setMux(Multiplexer *mux){this->mux = mux;};
+    virtual appFlowIdType addNewFlow(Packet *pkt, sockaddr_in &src_addr, sockaddr_in &dest_addr);
+    virtual appSInt readData(appFlowIdType flowId, appByte *data, appInt size);
+    virtual appSInt sendData(appFlowIdType flowId, appByte *data, appInt size);
+    virtual appStatus closeFlow(appFlowIdType flowId){return mux->closeFlow(flowId);};
+    virtual void setupInterfaces(appInt8 ifcRem, sockaddr_in &remAddr);
+    inline virtual appSInt recvAck(appFlowIdType flowId, appInt16 flowSeqNo) {assert(mux); return mux->recvAck(flowId, flowSeqNo);};
+    appInt32 acceptFlow();
+    void run();
+    virtual inline PacketReadHeader *getReceiverStatus(){APP_ASSERT(mux); return mux->getReceiverStatus();}
+    virtual inline appSInt recvProcPacket(Packet *pkt);
+    inline appBool isClosed(){return closed and (!mux or mux->isClosed());}
+    appTs getLastUsed() {return lastUsed;};
 private:
-	appInt16 clientFingerPrint;
-	std::set<RemoteAddr> remoteAddr;
-	Multiplexer *mux;
-	appTs lastUsed;
-	ServerConnection *parent;
-	InterfaceScheduler ifcSch;
-	PendingAcks pendAck;
+    virtual void close();
+    virtual appSInt recvPacketAfterThread(Packet *pkt, RecvSendFlags &flags);
+    appInt16 clientFingerPrint;
+    std::set<RemoteAddr> remoteAddr;
+    Multiplexer *mux;
+    appTs lastUsed;
+    util::AppSemaphore waitToClose;
+    ServerConnection *parent;
+#ifdef NEW_CHANNEL_HANDLE
+    scheduler::NewChannelScheculer *ifcSch;
+#else
+    scheduler::InterfaceScheduler *ifcSch;
+#endif
+//    PendingAcks pendAck;
+    util::AppSemaphore recvSem;
+    std::atomic_bool stopThread;
+    util::AppLLQueue<Packet> recvQueue;
+    appBool closed;
 };
 
+} // namespace server
 #endif /* SRC_TUNNELLIB_SERVERCONNECTIONCLIENTDETAIL_HPP_ */

@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -34,11 +34,11 @@
 
 struct RemoteAddr{
 public:
-	RemoteAddr(in_addr ip, appInt port) : ip(ip), port(port){};
-	RemoteAddr(sockaddr_in &addr): ip(addr.sin_addr), port(addr.sin_port){}
-	in_addr ip;
-	appInt port;
-	bool operator<(const RemoteAddr &rAddr) const;
+    RemoteAddr(in_addr ip, appInt port) : ip(ip), port(port){};
+    RemoteAddr(sockaddr_in &addr): ip(addr.sin_addr), port(addr.sin_port){}
+    in_addr ip;
+    appInt port;
+    bool operator<(const RemoteAddr &rAddr) const;
 };
 
 struct InterfaceAddr{

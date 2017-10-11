@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -44,10 +44,10 @@
 
 #include "../src/TunnelLib/CommonHeaders.hh"
 #include "../src/util/Macros.h"
-#include "../src/TunnelLib/ARQ/Streamer.h"
 #include "../src/TunnelLib/ServerConnection.hh"
 #include "../src/TunnelLib/ClientConnection.hh"
 #include <appThread.h>
+#include "../src/TunnelLib/FlowHandler/Streamer.hh"
 
 #define QUEUE_NUMBER 1
 #define CATCH_SIG SIGUSR1
@@ -60,22 +60,22 @@ struct FlowInfo{
     FlowInfo(): cCon(NULL), index(0), flowId(0), streamer(NULL), destIp(0), closed(FALSE){}
     ClientConnection *cCon;
     appSInt index;
-    appInt16 flowId;
-    ARQ::Streamer *streamer;
+    appInt32 flowId;
+    FlowHandler::Streamer *streamer;
     appInt32 destIp;
     appBool closed;
 };
-struct NFPacket{
-    NFPacket *next;
+struct NFPacket:util::LL_Node{
     appInt len;
     appByte pkt[0];
 };
 
-AppSemaphore queueSem;
+util::AppSemaphore queueSem;
 
-APP_LL_QUEUE_DEFINE(NFPacket);
-APP_LL_QUEUE_ADD_FUNC(NFPacket);
-APP_LL_QUEUE_REMOVE_FUNC(NFPacket);
+util::AppLLQueue<NFPacket> NFPacketQueue;
+//APP_LL_QUEUE_DEFINE(NFPacket);
+//APP_LL_QUEUE_ADD_FUNC(NFPacket);
+//APP_LL_QUEUE_REMOVE_FUNC(NFPacket);
 
 std::map<appInt32, FlowInfo *> destinationFlowMap;
 
@@ -94,25 +94,25 @@ FlowInfo *getFinfo(appInt32 destIp, ClientConnection *cCon){
     if(hasKey(destinationFlowMap, destIp))
         return destinationFlowMap[destIp];
 
-	FlowInfo *finfo = new FlowInfo();
-	finfo->cCon = cCon;
+    FlowInfo *finfo = new FlowInfo();
+    finfo->cCon = cCon;
 
-	LOGI("testflowtrace2: %ld", cCon->getTime().getMicro())
+    LOGI("testflowtrace2: %ld", cCon->getTime().getMicro())
 
-	auto flow = cCon->addNewFlow();
-	finfo->streamer = flow;
-	finfo->flowId = flow->flowId();
-	flow->setCallBack(ReliabilityMod::EVENT_NEW_DATA, finfo, (void *)newDataToFlow);
-	flow->setCallBack(ReliabilityMod::EVENT_CLOSING, finfo, (void *)flowClosing);
-	destinationFlowMap[destIp] = finfo;
-	return finfo;
+    auto flow = cCon->addNewFlow();
+//    finfo->streamer = flow;
+    finfo->flowId = flow;
+//    flow->setCallBack(ReliabilityMod::EVENT_NEW_DATA, finfo, (void *)newDataToFlow);
+//    flow->setCallBack(ReliabilityMod::EVENT_CLOSING, finfo, (void *)flowClosing);
+    destinationFlowMap[destIp] = finfo;
+    return finfo;
 }
 
 void sendDataToDestination(ClientConnection *cCon){
 
     while(1){
         queueSem.wait();
-        auto pkt = getFromQueueNFPacket();
+        auto pkt = NFPacketQueue.getFromQueue();
         struct iphdr *ipInfo = (struct iphdr *)pkt->pkt;
         appInt32 destIp = ntohl(ipInfo->daddr);
         auto finfo = getFinfo(destIp, cCon);
@@ -122,8 +122,7 @@ void sendDataToDestination(ClientConnection *cCon){
 }
 
 void startClient(appByte *serverIp, appInt serverPort, appInt queueNumber){
-
-    APP_LL_QUEUE_RESET(NFPacket);
+    NFPacketQueue.reset();
     ClientConnection cCon(serverIp, serverPort);
     void *self = &cCon;
     appByte *passData = APP_PACK(queueNumber, self);
@@ -164,7 +163,7 @@ static int nfqCallbackFn(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg, struct
         auto pkt = (NFPacket *)appCallocWrapper(1, sizeof(NFPacket)+ret);
         memcpy(pkt->pkt, ddata, ret);
         pkt->len = ret;
-        addToQueueNFPacket(pkt);
+        NFPacketQueue.addToQueue(pkt);
         queueSem.notify();
         goto REJECT_L;
     }

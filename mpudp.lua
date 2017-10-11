@@ -39,8 +39,11 @@ f.flag_syn = ProtoField.bool ("MPUDP.flag_syn", "FLAG_SYN")
 f.flag_ffn = ProtoField.bool ("MPUDP.flag_ffn", "FLAG_FFN")
 f.flag_cfn = ProtoField.bool ("MPUDP.flag_cfn", "FLAG_CFN")
 f.flag_fac = ProtoField.bool ("MPUDP.flag_fac", "FLAG_FAC")
-f.flag_psh = ProtoField.bool ("MPUDP.flag_psh", "FLAG_PSH")
+f.flag_chs = ProtoField.bool ("MPUDP.flag_chs", "FLAG_CHS")
 f.flag_csn = ProtoField.bool ("MPUDP.flag_csn", "FLAG_CSN")
+f.flag_ctr = ProtoField.bool ("MPUDP.flag_ctr", "FLAG_CTR")
+f.flag_chf = ProtoField.bool ("MPUDP.flag_chf", "FLAG_CHF")
+f.flag_ifc = ProtoField.bool ("MPUDP.flag_ifc", "FLAG_IFC")
 
 --f.opthdr = ProtoField.none("MPUDP.opthdr", "OptionalHeader")
 --f.flowid = ProtoField.uint16 ("OptionalHeader.flowid", "Flow Id")
@@ -49,6 +52,10 @@ f.flowack = ProtoField.uint16 ("MPUDP.flowack", "Flow Ack Number")
 f.ifcType = ProtoField.uint8 ("MPUDP.ifc_type", "inteface type")
 f.ifcId = ProtoField.uint8 ("MPUDP.ifc_type", "inteface type")
 f.ifcIp = ProtoField.ipv4 ("MPUDP.ifc_ip", "interface Ip")
+
+f.nonce = ProtoField.uint64 ("MPUDP.nonce", "Nonce")
+f.readInfo_flowId = ProtoField.uint16 ("MPUDP.readInfo_flowId", "Flow Id")
+f.readInfo_readUp = ProtoField.uint16 ("MPUDP.readInfo_readUp", "Read upto")
 
 function bitwiseAnd(m, n)
     local c = 0
@@ -71,8 +78,8 @@ end
 function printLog(tree, flg)
     local flagIter = 1
     local val = 0
-    local FLAG_VAL = { [0x01] = "ACK", [0x02] = "DAT", [0x04] = "SYN", [0x08] = "FFN", [0x10] = "CFN", [0x20]= "FAC", [0x40] = "PSH", [0x80] = "CSN"}
-    local FLAG_TRE = { [0x01] = f.flag_ack, [0x02] = f.flag_dat, [0x04] = f.flag_syn, [0x08] = f.flag_ffn, [0x10] = f.flag_cfn, [0x20]= f.flag_fac, [0x40] = f.flag_psh, [0x80] = f.flag_csn}
+    local FLAG_VAL = { [0x01] = "ACK", [0x02] = "DAT", [0x04] = "SYN", [0x08] = "FFN", [0x10] = "CFN", [0x20]= "FAC", [0x40] = "CHS", [0x80] = "CSN", [0x0100] = "CTR", [0x0200] = "CHF", [0x0400] = "IFC"}
+    local FLAG_TRE = { [0x01] = f.flag_ack, [0x02] = f.flag_dat, [0x04] = f.flag_syn, [0x08] = f.flag_ffn, [0x10] = f.flag_cfn, [0x20]= f.flag_fac, [0x40] = f.flag_chs, [0x80] = f.flag_csn, [0x0100] = f.flag_ctr, [0x0200] = f.flag_chf, [0x0400] = f.flag_ifc}
     local k = 1
     local x = 0
 
@@ -104,6 +111,30 @@ function showOptionalHeaders(buffer, offset, ohtype, tree)
         local ip = buffer(offset, 4)
         tree:add(f.ifcId, ifcid)
         tree:add(f.ifcIp, ip)
+    elseif ohtype == 3 then
+        tree:append_text("IP_NONCE")
+        local nonce = buffer(offset, 8)
+        tree:add(f.nonce, nonce)
+    elseif ohtype == 5 then
+    	-- tree:append_text("readInfo")
+    	local count = buffer(offset, 2)
+    	local cnt = count:uint()
+        local len = cnt*4+2
+        local buf = buffer(offset, len)
+    	local stree = tree:add("ReadInfo: counts: "..cnt, buf)
+    	offset = offset + 2
+    	local iter = 0
+    	while iter < cnt do
+    		local fl = buffer(offset, 2)
+    		offset = offset + 2
+    		local rd = buffer(offset, 2)
+    		offset = offset + 2
+    		local sntree = stree:add("Flow: "..fl:uint().." Seq:"..rd:uint())
+    		sntree:add(f.readInfo_flowId, fl)
+    		sntree:add(f.readInfo_readUp, rd)
+    		iter = iter + 1
+
+    	end
     else 
         tree:append_text("UNKNOWN" .. ohtype)
     end
@@ -177,13 +208,13 @@ function mpudp_protocol.dissector(buffer, pinfo, tree)
     local typ = 0
     while iter > 0 do
         typ = buffer(offset, 1)
-        offset = offset + 1
-        len = buffer(offset, 1)
-        offset = offset + 1
+        offset = offset + 1 + 1 --padding
+        len = buffer(offset, 2)
+        offset = offset + 2
         local stree = subtree:add("Optional Header: ")
 
         showOptionalHeaders (buffer, offset, typ:uint(), stree)
-        offset = offset + len:uint() - 2
+        offset = offset + len:uint() - 4
 
         iter = iter - 1
     end

@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -48,16 +48,16 @@ extern "C" {
 #define __APP_THREAD_SAFE_MEMORY__
 #ifndef __APP_THREAD_SAFE_MEMORY__
 
-#define appMalloc(size) 	malloc(size)
-#define appFree(ptr) 		free(ptr)
-#define appCalloc(nmemb, size) 	calloc(nmemb, size)
-#define appRealloc(ptr, size) 	realloc(ptr, size)
+#define appMalloc(size)     malloc(size)
+#define appFree(ptr)         free(ptr)
+#define appCalloc(nmemb, size)     calloc(nmemb, size)
+#define appRealloc(ptr, size)     realloc(ptr, size)
 #else
 
-#define appMalloc(size) 	appMallocWrapper(size)
-#define appFree(ptr) 		appFreeWrapper(ptr)
-#define appCalloc(nmemb, size) 	appCallocWrapper(nmemb, size)
-#define appRealloc(ptr, size) 	appReallocWrapper(ptr, size)
+#define appMalloc(size)     appMallocWrapper(size)
+#define appFree(ptr)         appFreeWrapper(ptr)
+#define appCalloc(nmemb, size)     appCallocWrapper(nmemb, size)
+#define appRealloc(ptr, size)     appReallocWrapper(ptr, size)
 
 void *appMallocWrapper(size_t size);
 void appFreeWrapper(void *ptr);
@@ -68,17 +68,17 @@ void *appReallocWrapper(void *ptr, size_t size);
 
 #define appCondFree(ptr)        {if(ptr) {appFree((ptr)); (ptr) = NULL;}}
 
-#define TRUE 	1
-#define FALSE 	0
+#define TRUE     1
+#define FALSE     0
 
 
 #define APP_ASSERT(_expr) APP_ASSERT_MSG(_expr, "NO MSG")
 #define APP_ASSERT_MSG(_expr, _msg) { \
-			if(!(_expr)){ \
-				LOGE("APP_ASERT FAILED: %s, Assert msg: %s", APP_CONVERT_TO_STRING(_expr), _msg); \
-				assert(_expr); \
-			} \
-			}
+            if(!(_expr)){ \
+                LOGE("APP_ASERT FAILED: %s, Assert msg: %s", APP_CONVERT_TO_STRING(_expr), _msg); \
+                assert(_expr); \
+            } \
+            }
 #define PACKIT(_x) sizeof(_x), &(_x)
 #define PACKETIT(_x) , PACKIT(_x)
 #define PACKETSUM(_x) + sizeof(_x)
@@ -97,6 +97,8 @@ void *appReallocWrapper(void *ptr, size_t size);
 #define APP_MAKE_STR_ELE(_x) #_x
 #define APP_MAKE_BITMAP_ENUM_ELE(_x) _x##_BITMAP = (1<<_x)
 #define APP_MAKE_BITMAP_ENUM_ELE_VAL(_x, _v) _x = (1<<_v)
+#define APP_MAKE_ENUM_WITH_PREFIX(_pref, _x) _pref##_x
+
 
 /* no macros any more */
 
@@ -104,18 +106,18 @@ void *appReallocWrapper(void *ptr, size_t size);
 
 /* typedefs */
 //data types
-typedef int8_t		appSByte;
-typedef int8_t		appChar;
-typedef int8_t		appSChar;
-typedef int16_t		appSShort;
-typedef int32_t		appSInt;
-typedef int64_t		appSLong;
+typedef int8_t        appSByte;
+typedef int8_t        appChar;
+typedef int8_t        appSChar;
+typedef int16_t        appSShort;
+typedef int32_t        appSInt;
+typedef int64_t        appSLong;
 
-typedef uint8_t		appUChar;
-typedef uint8_t		appByte;
-typedef uint16_t	appShort;
-typedef uint32_t	appInt;
-typedef uint64_t	appLong;
+typedef uint8_t        appUChar;
+typedef uint8_t        appByte;
+typedef uint16_t    appShort;
+typedef uint32_t    appInt;
+typedef uint64_t    appLong;
 
 typedef int8_t      appSInt8;
 typedef int16_t     appSInt16;
@@ -127,31 +129,31 @@ typedef uint16_t    appInt16;
 typedef uint32_t    appInt32;
 typedef uint64_t    appInt64;
 
-typedef appChar* 	appString;
-typedef appByte 	appBool;
+typedef appChar*     appString;
+typedef appByte     appBool;
 
 /* no typedef below this points */
 
 /* enums */
 typedef enum _app_file_operation_mode_{
-	APP_FILE_MODE_INVALID,
-	APP_FILE_MODE_READ,
-	APP_FILE_MODE_WRITE,
-	/* */
-	APP_TOTAL_FILE_MODE
+    APP_FILE_MODE_INVALID,
+    APP_FILE_MODE_READ,
+    APP_FILE_MODE_WRITE,
+    /* */
+    APP_TOTAL_FILE_MODE
 } appFileOperationMode;
 
 typedef enum __aap_status__{
-	APP_SUCCESS,
-	APP_FAILURE,
+    APP_SUCCESS,
+    APP_FAILURE,
 } appStatus;
 //#if _POSIX_C_SOURCE >= 199309L
-#if 1
+#if 0
 typedef struct timespec appTime;
 #else
 typedef struct _app_time_{
-	appLong   tv_sec;
-	appLong  tv_nsec;
+    appInt64   tv_sec;
+    appInt64  tv_nsec;
 }appTime;
 #endif
 /* stop enum */
@@ -159,11 +161,11 @@ typedef struct _app_time_{
 /* struct */
 
 typedef struct _file_operation_{
-	appString fname;
-	FILE *fp;
-	appFileOperationMode mode;
-	//appByte[2048] buffer;
-	//appSInt bufIndex
+    appString fname;
+    FILE *fp;
+    appFileOperationMode mode;
+    //appByte[2048] buffer;
+    //appSInt bufIndex
 }appFileOperation;
 typedef appFileOperation* appFile;
 /* no struct any more */
@@ -184,7 +186,7 @@ void unpack(appByte *buf, appInt cnt, size_t size, ...);
 
 //#if _POSIX_C_SOURCE >= 199309L
 #if 1
-#define appGetSysTime(x) clock_gettime(CLOCK_REALTIME, (x))
+#define appGetSysTime(x) {struct timespec y; clock_gettime(CLOCK_REALTIME, (&y)); (x)->tv_sec = y.tv_sec; (x)->tv_nsec = y.tv_nsec; }
 #else
 #define appGetSysTime(x) struct timeval UNIQ_VAR(appTime_); gettimeofday(&UNIQ_VAR(appTime_), NULL); (x)->tv_sec = UNIQ_VAR(appTime_).tv_sec; (x)->tv_nsec = UNIQ_VAR(appTime_).tv_usec*1000;
 #endif

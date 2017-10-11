@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,15 +25,17 @@
  */
 
 //#include <iostream>
+#include "ThreadPool.hh"
+
 #include <common.h>
 
-#include "ThreadPool.h"
 
-namespace UTIL {
+namespace util {
 
-ThreadPool::ThreadPool(int threadCount, bool start) : pool(NULL), stack(NULL), stackTop(-1), maxCount(threadCount), poolSize(0), numThreadRunning(0), turnedOffIndex(-1), running(false), stopped(false), APP_LL_QUEUE_INIT_LIST(Job)
-{
-    if(start){
+ThreadPool::ThreadPool(int threadCount, bool start) :
+        pool(NULL), stack(NULL), stackTop(-1), maxCount(threadCount), poolSize(0),
+        numThreadRunning(0), turnedOffIndex(-1), running(false), stopped(false) {
+    if (start) {
         run();
     }
 }
@@ -93,7 +95,7 @@ void ThreadPool::run() {
 }
 
 void ThreadPool::executeInsidePool(cb_func fn, void* data) {
-    if(!running) return;
+    APP_ASSERT(running && "worker is not running");
     Job *jb = getJobPool().getNew(); //new Job();
     jb->func=fn;
     jb->data = data;
@@ -103,7 +105,7 @@ void ThreadPool::executeInsidePool(cb_func fn, void* data) {
 
 void ThreadPool::putJob(Job* jb) {
     getJobLock.lock();
-    addToQueueJob(jb);
+    jobQueue.addToQueue(jb);
     waitForJob.notify();
     getJobLock.unlock();
 }
@@ -140,7 +142,7 @@ Job* ThreadPool::getJob() {
 //        getJobLock.lock();
 //    }
     getJobLock.lock();
-    jb = getFromQueueJob();
+    jb = jobQueue.getFromQueue();
     getJobLock.unlock();
     return jb;
 }

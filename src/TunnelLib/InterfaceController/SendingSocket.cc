@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,8 @@
  *      Author: abhijit
  */
 
-#include "SendingSocket.h"
+#include "SendingSocket.hh"
+
 #include <iostream>
 #include <common.h>
 #include "../CommonHeaders.hh"
@@ -42,14 +43,14 @@ static struct timespec timeOuts[] = {
 static int backOffCount = sizeof(timeOuts)/sizeof(struct timespec);
 
 
-AppPool<SendMsgBuffer>& getSendMsgPool() {
-    static AppPool<SendMsgBuffer> sendMsgPool;
+util::AppPool<SendMsgBuffer>& getSendMsgPool() {
+    static util::AppPool<SendMsgBuffer> sendMsgPool;
     return sendMsgPool;
 }
 
 SendingSocket *SendingSocket::instance = NULL;
 
-std::mutex SendingSocket::instantCreationMutex;
+util::AppMutex SendingSocket::instantCreationMutex;
 
 SendingSocket::SendingSocket() :
     socket_descriptor(0),
@@ -81,12 +82,12 @@ SendingSocket* SendingSocket::getInstance() {
 
 int SendingSocket::init() {
     if ((socket_descriptor = socket (PF_PACKET, SOCK_DGRAM, htons (ETH_P_ALL))) < 0) {
-		perror ("socket() failed ");
-		return 3;
-	}
-    auto tmpO = this;
-    auto data = APP_PACK(tmpO);
-    runInThreadGetTid(SendingSocket::startSendingInsideThread, data, FALSE, &sendingTid);
+        perror ("socket() failed ");
+        return 3;
+    }
+//    auto tmpO = this;
+//    auto data = APP_PACK(tmpO);
+//    runInThreadGetTid(SendingSocket::startSendingInsideThread, data, FALSE, &sendingTid);
     return 0;
 }
 
@@ -129,17 +130,20 @@ int SendingSocket::sendMsgToSystemInterface(SendMsgBuffer *msg) {
         if(ret >= 0){
             break;
         }
-        else if(errno != ENOBUFS){
-            std::cerr << "Error " << retryCnt << " error No: " << errno <<  std::endl;
-            perror("error");
-            break;
-        }
-        else{
+        else if(errno == ENOBUFS){
             if(retryCnt > 0)
                 std::cout << "Error: " << retryCnt << std::endl;
             auto ptr = retryCnt < backOffCount ? &timeOuts[retryCnt] : &timeOuts[backOffCount-1];
             clock_nanosleep(CLOCK_MONOTONIC, 0, ptr, NULL);
             retryCnt ++;
+        }
+        else if(errno == ENETDOWN){
+            return -ERROR_NETWORK_CLOSED;
+        }
+        else{
+            std::cerr << "Error " << retryCnt << " error No: " << errno <<  std::endl;
+            perror("error");
+            return ret;
         }
     }while(retryCnt < 10);
     packetCount += 1;
@@ -173,6 +177,12 @@ void SendingSocket::sendMsg(SendMsgBuffer* msg) {
     addNextPacket(msg);
     packeQueueLock.unlock();
     waitForPacket.notify();
+}
+
+int SendingSocket::sendMsgDirectly(SendMsgBuffer* msg) {
+    auto ret = sendMsgToSystemInterface(msg);
+    getSendMsgPool().free(msg);
+    return ret;
 }
 
 } /* namespace Interface */

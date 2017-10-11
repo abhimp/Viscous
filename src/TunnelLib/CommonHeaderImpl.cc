@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -81,54 +81,54 @@ appTs appTs::addnano(appInt64 ns){
 }
 
 appSInt64 appTs::getMicro(){
-	appSInt64 nts=0;
-	nts = sec() * 1000000L + nsec() /1000;
-	return nts;
+    appSInt64 nts=0;
+    nts = sec() * 1000000L + nsec() /1000;
+    return nts;
 }
 
 appSInt64 appTs::getMili(){
-	appSInt64 nts=0;
-	nts = sec() * 1000L + nsec() /1000000;
-	return nts;
+    appSInt64 nts=0;
+    nts = sec() * 1000L + nsec() /1000000;
+    return nts;
 }
 
 std::ostream& operator<< (std::ostream& os, appTs ts){
-	os << ts.sec() << "." << ts.nsec()/1000000000.0;
-	return os;
+    os << ts.sec() << "." << ts.nsec()/1000000000.0;
+    return os;
 }
 
 BaseReliableObj::BaseReliableObj(BaseReliableObj *parent):parent(parent){
-	id = getNextChildId();
+    id = getNextChildId();
 }
 
 BaseReliableObj::~BaseReliableObj(){
-	pthread_mutex_lock(&newIdLock);
-	BaseReliableObj::childIdFreePool.insert(id);
-	BaseReliableObj::childIdPool.erase(id);
-	pthread_mutex_unlock(&newIdLock);
+    pthread_mutex_lock(&newIdLock);
+    BaseReliableObj::childIdFreePool.insert(id);
+    BaseReliableObj::childIdPool.erase(id);
+    pthread_mutex_unlock(&newIdLock);
 }
 
 appInt BaseReliableObj::getNextChildId(){
-	pthread_mutex_lock(&newIdLock);
-	appInt newId;
-	while(1){
-		if(BaseReliableObj::childIdFreePool.empty()){
-			nextChildId ++;
-			newId = nextChildId;
-		}
-		else{
-			std::set<appInt>::iterator it = BaseReliableObj::childIdFreePool.begin();
-			newId = *it;
-			BaseReliableObj::childIdFreePool.erase(newId);
-		}
-		if(BaseReliableObj::childIdPool.find(newId) != BaseReliableObj::childIdPool.end()){
-			continue;
-		}
-		BaseReliableObj::childIdPool.insert(newId);
-		break;
-	}
-	pthread_mutex_unlock(&newIdLock);
-	return newId;
+    pthread_mutex_lock(&newIdLock);
+    appInt newId;
+    while(1){
+        if(BaseReliableObj::childIdFreePool.empty()){
+            nextChildId ++;
+            newId = nextChildId;
+        }
+        else{
+            std::set<appInt>::iterator it = BaseReliableObj::childIdFreePool.begin();
+            newId = *it;
+            BaseReliableObj::childIdFreePool.erase(newId);
+        }
+        if(BaseReliableObj::childIdPool.find(newId) != BaseReliableObj::childIdPool.end()){
+            continue;
+        }
+        BaseReliableObj::childIdPool.insert(newId);
+        break;
+    }
+    pthread_mutex_unlock(&newIdLock);
+    return newId;
 }
 
 appInt BaseReliableObj::nextChildId = 0;
@@ -138,22 +138,22 @@ std::set<appInt> BaseReliableObj::childIdPool;
 
 void TimeOutProducer::attach(TimeoutObserver *rm){
     accessMutex.lock();
-	this->listner.insert(rm);
-	accessMutex.unlock();
+    this->listner.insert(rm);
+    accessMutex.unlock();
 }
 
 void TimeOutProducer::detach(TimeoutObserver *rm){
     accessMutex.lock();
     if(hasKey(listner, rm))
         listner.erase(rm);
-	accessMutex.unlock();
+    accessMutex.unlock();
 }
 
 void TimeOutProducer::timeoutEvent(appTs time){
     accessMutex.lock();
-	for(TimeoutObserver *rm : listner){
-		rm->timeoutEvent(time);
-	}
-	accessMutex.unlock();
+    for(TimeoutObserver *rm : listner){
+        rm->timeoutEvent(time);
+    }
+    accessMutex.unlock();
 }
 

@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,14 +24,26 @@
  *      Author: abhijit
  */
 
-#include "PacketEventHandler.h"
+#include "PacketEventHandler.hh"
 
 
-PacketEventHandler::PacketEventHandler(BaseReliableObj* parent)
-    :BaseReliableObj(parent), bigLoopTid(0), evLoopTid(0), conLoopTid(0), timerLoopTid(0),
-     bigLoopThreadRunning(FALSE), evLoopThreadRunning(FALSE), conLoopThreadRunning(FALSE), timerLoopThreadRunning(FALSE),
-     stopEvThread(FALSE),
-     con(NULL), begQ(NULL), endQ(NULL), queueSize(0), pendingTimeOut(FALSE), closed(FALSE)
+PacketEventHandler::PacketEventHandler(BaseReliableObj* parent) : BaseReliableObj(parent)
+        , bigLoopTid(0)
+        , evLoopTid(0)
+        , conLoopTid(0)
+        , timerLoopTid(0)
+        , bigLoopThreadRunning(FALSE)
+        , evLoopThreadRunning(FALSE)
+        , conLoopThreadRunning(FALSE)
+        , timerLoopThreadRunning(FALSE)
+        , stopEvThread(FALSE)
+        , con(NULL)
+        , begQ(NULL)
+        , endQ(NULL)
+        , queueSize(0)
+        , pendingTimeOut(FALSE)
+        , closed(FALSE)
+        , timerLoopThreadClosed(FALSE)
 {
     con = new Connection(this);
 }
@@ -41,11 +53,13 @@ PacketEventHandler::~PacketEventHandler() {
     delete con;
 }
 
-appSInt PacketEventHandler::recvPacketFrom(Packet* pkt) {
-    queueLock.lock();
-    addNextPacket(pkt);
-    notify.notify();
-    queueLock.unlock();
+appSInt PacketEventHandler::recvPacketFrom(Packet* pkt, RecvSendFlags &flags) {
+    RecvSendFlags flag = DEFALT_RECVSENDFLAG_VALUE;
+    parent->recvPacketFrom(pkt, flag);
+//    queueLock.lock();
+//    addNextPacket(pkt);
+//    notify.notify();
+//    queueLock.unlock();
     return 0;
 }
 
@@ -66,28 +80,28 @@ appStatus PacketEventHandler::startServer(appInt localPort, appByte* localIp) {
 }
 
 void PacketEventHandler::close(void) {
-    closed = TRUE;
-    notify.notify();
-    waitToClose.wait();
-    if(conLoopThreadRunning){pthread_cancel(conLoopTid);}
-    con->close();
+//    closed = TRUE;
+//    notify.notify();
+//    waitToClose.wait();
+
+    con->force_close();
+    timerLoopThreadClosed = TRUE;
+//    if(conLoopThreadRunning){pthread_cancel(conLoopTid);}
+//    if(timerLoopThreadRunning){pthread_cancel(timerLoopTid);}
+    if(conLoopThreadRunning){conLoopThreadClosedWait.wait();}
+    if(timerLoopThreadRunning){timerLoopThreadClosedWait.wait();}
+//    con->close();
 }
 
 void PacketEventHandler::start() {
-    ev_init(&timer, evTimerExpired);
-    timer.repeat = TIMER_GRANULITY_MS/1000.0; //200milisec
-    timer.data = this;
-    ev_timer_again(EV_DEFAULT_ &timer);
     auto tmpO = this;
     appByte* data;
-    data = APP_PACK(tmpO);
-    if(runInThreadGetTid(PacketEventHandler::startBigLoopInsideThread, data, FALSE, &bigLoopTid) != APP_SUCCESS){
-        LOGE("Cannot create thread");
-        exit(__LINE__);
-    }
-    bigLoopThreadRunning = TRUE;
 //    data = APP_PACK(tmpO);
-//    runInThreadGetTid(PacketEventHandler::startEventListnerInsideThread, data, FALSE, &evLoopTid);
+//    if(runInThreadGetTid(PacketEventHandler::startBigLoopInsideThread, data, FALSE, &bigLoopTid) != APP_SUCCESS){
+//        LOGE("Cannot create thread");
+//        exit(__LINE__);
+//    }
+//    bigLoopThreadRunning = TRUE;
     data = APP_PACK(tmpO);
     if(runInThreadGetTid(PacketEventHandler::startConListnerInsideThread, data, FALSE, &conLoopTid) != APP_SUCCESS){
         LOGE("Cannot create thread");
@@ -109,6 +123,8 @@ void* PacketEventHandler::startConListnerInsideThread(void* data,
     APP_UNPACK((appByte *)data, peh);
     peh->conLoopThreadRunning = TRUE;
     peh->con->listen();
+    peh->conLoopThreadRunning = FALSE;
+    peh->conLoopThreadClosedWait.notify();
     return NULL;
 }
 
@@ -122,42 +138,40 @@ void* PacketEventHandler::startTimerInsideThread(void* data,
     req.tv_sec = 0;
     req.tv_nsec = TIMER_GRANULITY_US*1000;
     while(1){
-        if(peh->closed)
-            break;
         clock_nanosleep(CLOCK_MONOTONIC, 0, &req, NULL);
+        if(peh->closed or peh->timerLoopThreadClosed)
+            break;
         peh->evTimerExpired();
     }
+    peh->timerLoopThreadClosedWait.notify();
+    peh->timerLoopThreadRunning = FALSE;
     return NULL;
 }
 
 //Static
-void* PacketEventHandler::startEventListnerInsideThread(void* data,
-        appThreadInfoId tid) {
-    PacketEventHandler *peh;
-    APP_UNPACK((appByte *)data, peh);
-    peh->evLoopThreadRunning = TRUE;
-	ev_run(EV_DEFAULT_ 0);
-	return NULL;
-}
+//void* PacketEventHandler::startEventListnerInsideThread(void* data,
+//        appThreadInfoId tid) {
+//    PacketEventHandler *peh;
+//    APP_UNPACK((appByte *)data, peh);
+//    peh->evLoopThreadRunning = TRUE;
+//    ev_run(EV_DEFAULT_ 0);
+//    return NULL;
+//}
 
 //static
-void PacketEventHandler::evTimerExpired(EV_P_ ev_timer *w, int revents){
-    PacketEventHandler *peh = (PacketEventHandler *)w->data;
-    if(peh->stopEvThread){
-        ev_break(EV_DEFAULT_ EVBREAK_ALL);
-        ev_loop_destroy(EV_DEFAULT);
-        return;
-    }
-	peh->evTimerExpired();
-	ev_timer_again(EV_DEFAULT_ w);
-}
+//void PacketEventHandler::evTimerExpired(EV_P_ ev_timer *w, int revents){
+//    PacketEventHandler *peh = (PacketEventHandler *)w->data;
+//    if(peh->stopEvThread){
+//        ev_break(EV_DEFAULT_ EVBREAK_ALL);
+//        ev_loop_destroy(EV_DEFAULT);
+//        return;
+//    }
+//    peh->evTimerExpired();
+//    ev_timer_again(EV_DEFAULT_ w);
+//}
 
 void PacketEventHandler::evTimerExpired() {
-//    queueLock.lock();
     parent->timeoutEvent(getTime());
-//    pendingTimeOut = TRUE;
-//    notify.notify();
-//    queueLock.unlock();
 }
 
 //Static
@@ -172,15 +186,8 @@ void* PacketEventHandler::startBigLoopInsideThread(void* data,
 void PacketEventHandler::bigLoop() {
     appBool performTimeOut = FALSE;
     Packet *pkt;
-//    appSInt qSize;
     while(1){
-//        queueLock.lock();
         notify.wait();
-//        if(!pendingTimeOut and !closed and queueSize == 0){
-////            queueLock.unlock();
-////            notify.wait();
-////            queueLock.lock();
-//        }
         if(pendingTimeOut){
             performTimeOut = TRUE;
             pendingTimeOut = FALSE;
@@ -199,7 +206,8 @@ void PacketEventHandler::bigLoop() {
             performTimeOut = FALSE;
         }
         else{
-            parent->recvPacketFrom(pkt);
+            RecvSendFlags flag = DEFALT_RECVSENDFLAG_VALUE;
+            parent->recvPacketFrom(pkt, flag);
         }
     }
 }
@@ -208,7 +216,7 @@ Packet* PacketEventHandler::getNextPacket() {
     APP_ASSERT(begQ);
     readWriteLock.lock();
     auto tmp = begQ;
-    begQ = begQ->next;
+    begQ = (Packet *)begQ->next;
     if(begQ == NULL){
         endQ = NULL;
     }

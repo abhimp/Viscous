@@ -32,4 +32,6 @@
 *.hex
 *.class
 /Release/
+/html/
+/latex/
 .settings/language.settings.xml

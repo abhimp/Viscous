@@ -1,5 +1,5 @@
 /*
- * This is an implemetation of Viscous protocol.
+ * This is an implementation of Viscous protocol.
  * Copyright (C) 2017  Abhijit Mondal
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,8 @@
 #ifndef SRC_UTIL_BITFIELD_HPP_
 #define SRC_UTIL_BITFIELD_HPP_
 #include <common.h>
+namespace util {
+
 struct BitField{
     appByte *buffer;
     appInt size;
@@ -64,6 +66,9 @@ struct BitField{
 private:
     appByte offsetValue[8] = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
 };
+
+}  // namespace util
+
 
 
 
