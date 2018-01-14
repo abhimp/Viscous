@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <common.h>
 #include "../src/util/ThreadPool.hh"
+#include "../src/util/AppRandom.hh"
 
 util::AppMutex fprintlock;
 void f1(int n, int id)
@@ -73,7 +74,11 @@ int threadTest()
     int fn, n;
     for(auto i = 0; i < 15; i++){
         fn = i%2 + 1;
+#ifdef __ANDROID__
+        n = util::appRand()%6;
+#else
         n = std::rand()%6;
+#endif
         appByte *data = APP_PACK(fn, n, i);
         p.executeInsidePool(runinthreadtest, data);
     }

@@ -45,12 +45,15 @@ interfaceIPGWMap getAllGatewayAndIfaceUsingIfHack(){
     for(auto file:dirs){
         std::string fpath = path + file;
 //        std::ifstream fp(fpath);
+        if(path.length() > 0 and path[path.length()-1] != '/'){
+            fpath = path + "/" + file;
+        }
         auto fp = fopen((char *)fpath.c_str(), "r");
         if(!fp)
             continue;
         in_addr_t gw = 0;
         in_addr_t ip = 0;
-        appChar *iface = NULL;
+        std::string iface;
         while(1){
             key = NULL;
             cnt = 0;
@@ -68,8 +71,9 @@ interfaceIPGWMap getAllGatewayAndIfaceUsingIfHack(){
             *val = 0;
             val++;
             if(strcmp(key, "iface") == 0){
-                iface = new appChar[strlen(val) + 1];
-                strcpy((char *)iface, val);
+                iface = val;
+//                new appChar[strlen(val) + 1];
+//                strcpy((char *)iface, val);
             }
             else if(strcmp(key, "gw") == 0){
                 gw = inet_addr(val);
@@ -79,11 +83,12 @@ interfaceIPGWMap getAllGatewayAndIfaceUsingIfHack(){
             }
 //            printf("key=%s, val=%s\n", line, val);
         }
-        if(!ip or !gw or !iface){
-            if(iface)
-                delete iface;
+        if(!ip or !gw or iface.empty()){
+//            if(iface)
+//                delete iface;
+            continue;
         }
-        std::pair<appString, in_addr_t> p(iface, gw);
+        std::pair<std::string, in_addr_t> p(iface, gw);
         interfaces[ip] = p;
 
     }
@@ -95,7 +100,7 @@ interfaceIPMap getAllGatewayAndIface()
     long destination, gateway;
     char iface[IF_NAMESIZE];
     char buf[BUFFER_SIZE];
-    appString tmp;
+    std::string tmp;
     in_addr_t addr;
     interfaceIPMap interfaces;
     FILE * file;
@@ -111,8 +116,9 @@ interfaceIPMap getAllGatewayAndIface()
         if (sscanf(buf, "%s %lx %lx", iface, &destination, &gateway) == 3) {
             if (destination == 0) { /* default */
                 addr = gateway;
-                tmp = new appChar[strlen(iface) + 1];
-                strcpy((char *)tmp, iface);
+//                tmp = new appChar[strlen(iface) + 1];
+//                strcpy((char *)tmp, iface);
+                tmp = iface;
                 interfaces[tmp] = addr;
             }
         }
@@ -124,9 +130,9 @@ interfaceIPMap getAllGatewayAndIface()
     return interfaces;
 }
 
-int getGatewayAndIface(in_addr_t * addr, char *interface)
+int getGatewayAndIface(std::string interface, in_addr_t &addr)
 {
-    long destination, gateway;
+    appSInt32 destination, gateway;
     char iface[IF_NAMESIZE];
     char buf[BUFFER_SIZE];
     FILE * file;
@@ -139,9 +145,9 @@ int getGatewayAndIface(in_addr_t * addr, char *interface)
         return -1;
 
     while (fgets(buf, sizeof(buf), file)) {
-        if (sscanf(buf, "%s %lx %lx", iface, &destination, &gateway) == 3) {
-            if (destination == 0 && strcmp(interface, iface) == 0) { /* default */
-                *addr = gateway;
+        if (sscanf(buf, "%s %x %x", iface, &destination, &gateway) == 3) {
+            if (destination == 0 && interface == iface) { /* default */
+                addr = gateway;
                 fclose(file);
                 return 0;
             }
@@ -154,7 +160,7 @@ int getGatewayAndIface(in_addr_t * addr, char *interface)
     return -1;
 }
 
-int getMac(char *searchIp, char *chwaddr, struct ether_addr *hwaddr){
+int getMac(std::string searchIp, std::string &chwaddr, struct ether_addr &hwaddr){
     FILE *fp;
     char buf[BUFFER_SIZE];
     char ip[CONT_LEN], hwt[CONT_LEN], flg[CONT_LEN], hwa[CONT_LEN];
@@ -167,14 +173,14 @@ int getMac(char *searchIp, char *chwaddr, struct ether_addr *hwaddr){
     
     while(fgets(buf, sizeof(buf), fp)){
         if(sscanf(buf, "%s %s %s %s", ip, hwt, flg, hwa) == 4){
-            if(strcmp(ip, searchIp) == 0){
-                if(chwaddr != NULL){
-                    strcpy(chwaddr, hwa);
-                }
-                if(hwaddr != NULL){
+            if(ip == searchIp){
+//                if(!chwaddr.empty()){
+                    chwaddr = hwa;
+//                }
+//                if(hwaddr != NULL){
                     tmaddr = ether_aton(hwa);
-                    *hwaddr = *tmaddr;
-                }
+                    hwaddr = *tmaddr;
+//                }
                 //printf("%s -> %s\n", ip, hwa);
                 fclose(fp);
                 return 0;
@@ -189,7 +195,7 @@ interfaceIPMap getAllIp(){
     struct ifaddrs *addrs, *tmp;
     int status;
     interfaceIPMap ipMap;
-    char *intf;
+    std::string intf;
     status = getifaddrs(&addrs);
     if (status != 0){
         return ipMap;
@@ -207,10 +213,11 @@ interfaceIPMap getAllIp(){
         {
             struct sockaddr_in *pAddr = (struct sockaddr_in *)tmp->ifa_addr;
             if((invalidNetwork&invalidMask) != (pAddr->sin_addr.s_addr&invalidMask)){
-                assert(ipMap.find((appString)tmp->ifa_name) == ipMap.end());
-                intf = new char[strlen(tmp->ifa_name) + 1];
-                strcpy(intf, tmp->ifa_name);
-                ipMap[(appString)intf] = pAddr->sin_addr.s_addr;
+                intf = tmp->ifa_name;
+                assert(ipMap.find(intf) == ipMap.end());
+//                intf = new char[strlen(tmp->ifa_name) + 1];
+//                strcpy(intf, tmp->ifa_name);
+                ipMap[intf] = pAddr->sin_addr.s_addr;
             }
         }
         tmp = tmp->ifa_next;
@@ -220,10 +227,10 @@ interfaceIPMap getAllIp(){
     return ipMap;
 }
 
-int getMacR(char *ifc, char *searchIp, char *c_hwaddr, struct ether_addr *e_hwaddr){
+int getMacR(std::string ifc, std::string searchIp, std::string &c_hwaddr, struct ether_addr &e_hwaddr){
     char arpingcmd[100];
     if(getMac(searchIp, c_hwaddr, e_hwaddr) != 0){
-        sprintf(arpingcmd, "ping -c 2 -I %s %s", ifc, searchIp);
+        sprintf(arpingcmd, "ping -c 2 -I %s %s", ifc.c_str(), searchIp.c_str());
         system(arpingcmd);
         if(getMac(searchIp, c_hwaddr, e_hwaddr) != 0){
             return 2;
@@ -232,22 +239,25 @@ int getMacR(char *ifc, char *searchIp, char *c_hwaddr, struct ether_addr *e_hwad
     return 0;
 }
 
-int getGatewayAddress(char *iface, in_addr_t *a_ip, char *s_ip, struct ether_addr *e_hwaddr, char *c_hwaddr){
+int getGatewayAddress(std::string iface, in_addr_t &a_ip, std::string s_ip, struct ether_addr &e_hwaddr, std::string c_hwaddr){
     in_addr_t addr = 0;
-    char ip[CONT_LEN], *tmp;
-    if(getGatewayAndIface(&addr, iface) != 0){
+    std::string tmp;
+    std::string ip;
+    if(getGatewayAndIface(iface, addr) != 0){
         fprintf(stderr, "%s: no such device\n", iface);
         return 1;
     }
-    if(a_ip){
-        *a_ip = addr;
-    }
+    a_ip = addr;
+//    if(a_ip){
+//        *a_ip = addr;
+//    }
     tmp = inet_ntoa(*(struct in_addr *) &addr);
-    strcpy(ip, tmp);
-    if(s_ip){
-        strcpy(s_ip, tmp);
-    }
-
+//    strcpy(ip, tmp);
+//    if(s_ip){
+//        strcpy(s_ip, tmp);
+//    }
+    s_ip = tmp;
+    ip = tmp;
     return getMacR(iface, ip, c_hwaddr, e_hwaddr);
 }
 
@@ -258,13 +268,14 @@ std::vector< InterfaceAddr > getIpMatrixUsingRoute(void){
 
     std::vector< InterfaceAddr > list;
     ether_addr e_addr;
+    std::string s_addr;
 
     intf2gw = SearchMac::getAllGatewayAndIface();
     intf2ip = SearchMac::getAllIp();
 
     for (auto it = intf2gw.begin(); it != intf2gw.end(); ++it) { // calls a_map.begin() and a_map.end()
-            char *ip = inet_ntoa(*(struct in_addr *) &(it->second));
-            if(SearchMac::getMacR((char *)it->first, ip, NULL, &e_addr) == 0)
+            std::string ip = inet_ntoa(*(struct in_addr *) &(it->second));
+            if(SearchMac::getMacR(it->first, ip, s_addr, e_addr) == 0)
             if(intf2ip.find(it->first) != intf2ip.end()){
                 InterfaceAddr s(it->first, *(struct in_addr *) &(it->second), e_addr, *(struct in_addr *) &(intf2ip[it->first]), 0);
                 list.push_back(s);
@@ -278,6 +289,7 @@ std::vector<InterfaceAddr> getIpMatrixUsingHack(void){
     interfaceIPGWMap ipIntf;
     ipIntf = getAllGatewayAndIfaceUsingIfHack();
     ether_addr e_addr;
+    std::string s_addr;
     std::vector< InterfaceAddr > list;
     for(auto ifc:ipIntf){
         auto ip = ifc.first;
@@ -285,7 +297,7 @@ std::vector<InterfaceAddr> getIpMatrixUsingHack(void){
         auto gw = ifc.second.second;
 
         auto gwips = inet_ntoa(*((struct in_addr *) &gw));
-        if(getMacR((char *)iface, gwips, NULL, &e_addr) == 0){
+        if(getMacR(iface, gwips, s_addr, e_addr) == 0){
             InterfaceAddr s(iface, *((struct in_addr *) &gw), e_addr, *((struct in_addr *) &ip), 0);
             list.push_back(s);
         }

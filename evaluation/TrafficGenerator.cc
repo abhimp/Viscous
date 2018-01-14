@@ -92,7 +92,7 @@ void Server::run(){
 //    exit(1); //TODO
 }
 
-#define NUM_FLOW_ACCEPT 2000
+#define NUM_FLOW_ACCEPT 1
 
 void startServer(appInt localPort, appByte *fylePathPrefix){
     LOGI("startServer");

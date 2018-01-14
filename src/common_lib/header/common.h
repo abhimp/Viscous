@@ -192,7 +192,7 @@ void unpack(appByte *buf, appInt cnt, size_t size, ...);
 #endif
 
 
-#ifdef __ANDROID__
+#ifdef ANDROID_LOG
 #include <jni.h>
 #include <android/log.h>
 #define  LOG_TAG    "someTag"
@@ -204,21 +204,10 @@ void unpack(appByte *buf, appInt cnt, size_t size, ...);
 #define  LOGV(...) APP_LOG(ANDROID_LOG_VERBOSE , __FILE__, __LINE__,  ## __VA_ARGS__)
 #define  LOGF(...) APP_LOG(ANDROID_LOG_FATAL, __FILE__, __LINE__,  ## __VA_ARGS__)
 
-#define APP_LOG(_x, _f, _l, frmt, ...) __android_log_print(_x, _f ":" APP_CONVERT_TO_STRING(_l), frmt, ## __VA_ARGS__)
+#define APP_LOG(_x, _f, _l, frmt, ...) __android_log_print(_x, _f ":" APP_CONVERT_TO_STRING(_l), frmt, ## __VA_ARGS__);
 
 #else
-//typedef enum _app_log_priority_ {
-//    APP_LOG_UNKNOWN = 0,
-//    APP_LOG_DEFAULT,    /* only for SetMinPriority() */
-//    APP_LOG_VERBOSE,
-//    APP_LOG_DEBUG,
-//    APP_LOG_INFO,
-//    APP_LOG_WARN,
-//    APP_LOG_ERROR,
-//    APP_LOG_FATAL,
-//    APP_LOG_SILENT,     /* only for SetMinPriority(); must be last */
-//    APP_PRIORITY_COUNT
-//} appLogPriority;
+
 #define APP_LOG_UNKNOWN 0
 #define APP_LOG_DEFAULT 1    /* only for SetMinPriority() */
 #define APP_LOG_VERBOSE 2

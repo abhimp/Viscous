@@ -355,6 +355,7 @@ PacketReadHeader::~PacketReadHeader() {
         x = x->next;
         delete y;
     }
+    readerInfo = NULL;
 }
 
 void PacketReadHeader::addInfo(appInt16 flowId, appInt16 readUpto) {
@@ -387,7 +388,8 @@ appInt16 PacketReadHeader::encode(appByte* data, appInt dataLen) {
     WRITE_INT_16(count, data, dataLen);
 //    appInt16 flowId, readUp;
     appInt len = 2;
-    for(auto x = readerInfo; x;){
+    appInt16 cnt = 0;
+    for(auto x = readerInfo; x; cnt++){
         APP_ASSERT(dataLen >= 4);
         auto y = x;
         x = x->next;
@@ -396,6 +398,7 @@ appInt16 PacketReadHeader::encode(appByte* data, appInt dataLen) {
         len += 4;
 //        addInfo(flowId, readUp);
     }
+    APP_ASSERT(cnt == count)
     return len;
 }
 

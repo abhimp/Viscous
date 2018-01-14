@@ -145,7 +145,8 @@ inline void freeOptionalHeaderToPool(PacketOptionalAbstractHeader* pktHdr) {
                 break;
 
             default:
-                APP_ASSERT("invalid header type");
+                delete pktHdr;
+//                APP_ASSERT(0 and "invalid header type");
         }
         pktHdr = next;
     }

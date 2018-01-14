@@ -34,6 +34,7 @@
 #include <netinet/tcp.h>
 #include "../src/TunnelLib/CommonHeaders.hh"
 #include "../src/util/ThreadPool.hh"
+#include "../src/util/AppRandom.hh"
 
 namespace TcpTrafficGeneratorReciever{
 
@@ -198,7 +199,11 @@ void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt 
     util::AppSemaphore semObj;
     util::AppSemaphore *sem = &semObj;
     for(appInt x = 0; x < sizeof(dt); x++){
+#ifdef __ANDROID__
+        dt[x] = util::appRand();
+#else
         dt[x] = std::rand();
+#endif
     }
 
     appByte *data;
@@ -245,7 +250,11 @@ void startClient(appByte *serverIp, appInt serverPort, appInt numThread, appInt 
     util::AppSemaphore semObj;
     util::AppSemaphore *sem = &semObj;
     for(appInt x = 0; x < sizeof(dt); x++){
+#ifdef __ANDROID__
+        dt[x] = util::appRand();
+#else
         dt[x] = std::rand();
+#endif
     }
 
     appByte *data;

@@ -3,9 +3,17 @@ CPP             := g++
 LINK            := g++
 AR              := ar
 
+ifneq ($(COMP_PREF),)
+    CC := $(COMP_PREF)gcc -fdiagnostics-color=auto
+    CPP := $(COMP_PREF)g++ -fdiagnostics-color=auto
+    LINK := $(COMP_PREF)g++ -fdiagnostics-color=auto
+    AR := $(COMP_PREF)ar
+endif
+
 OUTPUT_LIBRARY  := Viscous
 OUTPUT_LIB_OBJ  := lib$(OUTPUT_LIBRARY).a
 OUTPUT_BINARY   := ViscousTest
+
 
 CFLAGS          := \
                 -std=c11 \
@@ -14,7 +22,8 @@ CFLAGS          := \
                 -I"src/common_lib/header" \
                 -Wall -c \
                 -DNEW_CHANNEL_HANDLE \
-                -DEV_STANDALONE=1 \
+                -DDEV_STANDALONE=1 \
+				-DNO_POOL \
                 -pthread
 
 CCFLAGS         := \
@@ -23,7 +32,8 @@ CCFLAGS         := \
                 -I"src/common_lib/header" \
                 -Wall \
                 -DNEW_CHANNEL_HANDLE \
-                -DEV_STANDALONE=1 \
+                -DDEV_STANDALONE=1 \
+				-DNO_POOL \
                 -fmessage-length=0 \
                 -pthread
 
@@ -122,6 +132,10 @@ OUTDIR          := $(DEBUG_OUTDIR)
 ifeq ($(release), yes)
     OUTDIR := $(RELEASE_OUTDIR)
     DEBUG_FLAG := $(RELASE_FLAG)
+endif
+
+ifneq ($(OUTPUT_DIR),)
+    OUTDIR := $(OUTPUT_DIR)
 endif
 
 

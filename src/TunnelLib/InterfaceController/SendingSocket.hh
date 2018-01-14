@@ -39,7 +39,7 @@
 #include <netinet/udp.h>      // struct udphdr
 #include <arpa/inet.h>        // inet_pton() and inet_ntop()
 #include <sys/ioctl.h>        // macro ioctl is defined
-#include <bits/ioctls.h>      // defines values for argument "request" of ioctl.
+//#include <bits/ioctls.h>      // defines values for argument "request" of ioctl.
 #include <net/if.h>           // struct ifreq
 #include <linux/if_ether.h>   // ETH_P_IP = 0x0800, ETH_P_IPV6 = 0x86DD
 #include <linux/if_packet.h>  // struct sockaddr_ll (see man 7 packet)

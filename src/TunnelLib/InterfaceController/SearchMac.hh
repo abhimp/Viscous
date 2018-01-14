@@ -74,16 +74,16 @@ struct cmp_str
    }
 };
 
-typedef std::map<appString, in_addr_t, cmp_str> interfaceIPMap;
-typedef std::map<in_addr_t, std::pair<appString, in_addr_t> > interfaceIPGWMap; //iname, gw
+typedef std::map<std::string, in_addr_t> interfaceIPMap;
+typedef std::map<in_addr_t, std::pair<std::string, in_addr_t> > interfaceIPGWMap; //iname, gw
 //typedef std::map<appString, in_addr_t, cmp_str> interfaceIPVector;
 typedef std::map<SearchMacType, Value *> ifaceDetail;
 interfaceIPMap getAllGatewayAndIface();
 interfaceIPMap getAllIp();
-int getGatewayAndIface(in_addr_t * addr, char *interface);
-int getMac(char *searchIp, char *chwaddr, struct ether_addr *hwaddr);
-int getMacR(char *ifc, char *searchIp, char *c_hwaddr, struct ether_addr *e_hwaddr);
-int getGatewayAddress(char *iface, in_addr_t *a_ip, char *s_ip, struct ether_addr *e_hwaddr, char *c_hwaddr);
+int getGatewayAndIface(std::string interface, in_addr_t &addr);
+int getMac(std::string searchIp, std::string &chwaddr, struct ether_addr &hwaddr);
+int getMacR(std::string ifc, std::string searchIp, std::string &c_hwaddr, struct ether_addr &e_hwaddr);
+int getGatewayAddress(std::string &iface, in_addr_t &a_ip, std::string &s_ip, struct ether_addr &e_hwaddr, std::string &c_hwaddr);
 std::vector<InterfaceAddr> getIpMatrix(void);
 std::set<InterfaceInfo> getInterfaceInfos(void);
 

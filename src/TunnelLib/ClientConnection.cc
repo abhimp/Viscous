@@ -81,7 +81,7 @@ void ClientConnection::handShake1(){
     syncTries ++;
     syncTime = getTime().getMicro();
     getPacketPool().freePacket(pkt);
-    delete nonceHeader;
+//    delete nonceHeader;
     LOGI("Trying to connect: %d\n", syncTries);
 }
 

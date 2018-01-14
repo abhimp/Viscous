@@ -56,7 +56,7 @@ SendThroughInterface::SendThroughInterface(InterfaceAddr *localAddr):
 //    socket_descriptor(0),
     noDestMac(FALSE), opSock(NULL)//sendingTid(0), sendingThreadRunning(FALSE), stopSendingThread(FALSE), begQ(NULL), endQ(NULL), sizeQ(0)
 {
-    strcpy(interface, (char *)localAddr->ifc);
+    strcpy(interface, localAddr->ifc.c_str());
 }
 
 SendThroughInterface::~SendThroughInterface() {
@@ -265,7 +265,8 @@ int SendThroughInterface::sendPkt(Packet* pkt, in_addr dst_ip,
     if(noDestMac){
 //        APP_ASSERT(0 && "Some problem in system");
         ether_addr destAddr;
-        if(SearchMac::getMacR(interface, inet_ntoa(dst_ip), NULL, &destAddr)){
+        std::string tmp;
+        if(SearchMac::getMacR(interface, inet_ntoa(dst_ip), tmp, destAddr)){
             exit(43);
         }
         settingUpDestinationMac(destAddr);

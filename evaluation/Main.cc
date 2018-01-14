@@ -255,7 +255,7 @@ main (int argc, char **argv)
             return 1;
         default:
             usages(std::cerr, argv[0]);
-            std::exit(0);
+            exit(0);
         }
     }
 

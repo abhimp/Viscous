@@ -31,6 +31,7 @@
 #include <stddef.h>
 #include <cassert>
 #include <mutex>
+#include <memory>
 
 #include "ConditonalWait.hh"
 #include "AppMutex.hh"
@@ -170,6 +171,142 @@ inline T* AppLLQueue<T>::getAllFromQueue() {
     }
     return (T*)tmp;
 }
+
+////============================================================
+//template<typename T>
+//class AppSPLLQueue;
+//
+//class SPLL_Node{
+//public:
+//    SPLL_Node():next_(NULL), prev_(NULL){}
+//
+//    SPLL_Node *next_;
+//    SPLL_Node *prev_;
+//};
+//
+//template<typename T>
+//class AppSPLLQueue {
+//public:
+//    AppSPLLQueue(int queueSize = -1);
+//    virtual ~AppSPLLQueue();
+//
+//    inline void reset();
+//    inline appInt addSPLLToQueue(std::shared_ptr<T> node);
+//    inline void addToQueue(std::shared_ptr<T> node);
+//    inline std::shared_ptr<T> getFromQueue();
+//    inline appBool empty();
+//    inline std::shared_ptr<T> getAllFromQueue();
+//private:
+//    inline void add(std::shared_ptr<T> node);
+//    std::shared_ptr<T> beg, end;
+//    int queueSize;
+//    int maxQueueSize;
+//    util::AppSemaphore limitQueueSize;
+//    util::AppMutex queueLock;
+//};
+//
+//
+//template<typename T>
+//AppSPLLQueue<T>::AppSPLLQueue(int queueSize):queueSize(0), maxQueueSize(queueSize), limitQueueSize(queueSize>0? queueSize: 0) {
+//    assert(queueSize);
+//}
+//
+//template<typename T>
+//AppSPLLQueue<T>::~AppSPLLQueue() {
+//    // TODO Auto-generated destructor stub
+//}
+//
+//template<typename T>
+//inline void AppSPLLQueue<T>::reset() {
+//    beg = NULL;
+//    end = NULL;
+//    queueSize = 0;
+//}
+//
+//template<typename T>
+//inline appInt AppSPLLQueue<T>::addSPLLToQueue(std::shared_ptr<T> node) {
+//    std::shared_ptr<T> tmp = node;
+//    assert(maxQueueSize <= 0);
+//    appInt cnt = 0;
+//    queueLock.lock();
+//    while(tmp){
+//        auto p = tmp;
+//        tmp = tmp->next();
+//        add(p);
+//        cnt++;
+//    }
+//    queueLock.unlock();
+//    return cnt;
+//}
+//
+//template<typename T>
+//inline void AppSPLLQueue<T>::add(std::shared_ptr<T> node) {
+//    node->next() = NULL;
+//    if(beg != NULL){
+//        end->next() = node;
+//        end = node;
+//    }
+//    else{
+//        beg = end = node;
+//    }
+//    queueSize ++;
+//}
+//
+//template<typename T>
+//inline void AppSPLLQueue<T>::addToQueue(std::shared_ptr<T> node) {
+//    if(maxQueueSize > 0)
+//        limitQueueSize.wait();
+//    queueLock.lock();
+//    add(node);
+//    queueLock.unlock();
+//}
+//
+//template<typename T>
+//inline std::shared_ptr<T> AppSPLLQueue<T>::getFromQueue() {
+//    queueLock.lock();
+//    if (beg == NULL){
+//        queueLock.unlock();
+//        return NULL;
+//    }
+//    auto tmp = beg;
+//    beg = beg->next();
+//    if(beg == NULL){
+//        end = NULL;
+//    }
+//    queueSize --;
+//    queueLock.unlock();
+//    if(maxQueueSize > 0)
+//        limitQueueSize.notify();
+//    tmp->next() = NULL;
+//    return tmp;
+//}
+//
+//template<typename T>
+//inline appBool AppSPLLQueue<T>::empty() {
+//    appBool ret = TRUE;
+//    queueLock.lock();
+//    if(beg)
+//        ret = FALSE;
+//    queueLock.unlock();
+//    return ret;
+//}
+//
+//template<typename T>
+//inline std::shared_ptr<T> AppSPLLQueue<T>::getAllFromQueue() {
+//    if(!beg)
+//        return NULL;
+//    queueLock.lock();
+//    auto tmp = beg;
+//    beg = end = NULL;
+//    auto notify = queueSize;
+//    queueSize = 0;
+//    queueLock.unlock();
+//    while(notify and maxQueueSize > 0){
+//        limitQueueSize.notify();
+//        notify--;
+//    }
+//    return tmp;
+//}
 
 }
 

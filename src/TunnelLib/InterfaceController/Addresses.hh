@@ -43,9 +43,9 @@ public:
 
 struct InterfaceAddr{
     InterfaceAddr():ifc(NULL), localPort(0){}
-    InterfaceAddr(appString ifc, in_addr gwIp, ether_addr gwMac, in_addr infcIp, appInt localPort)
+    InterfaceAddr(std::string ifc, in_addr gwIp, ether_addr gwMac, in_addr infcIp, appInt localPort)
         : ifc(ifc), gwIp(gwIp), gwMac(gwMac), ifcIp(infcIp), localPort(localPort){}
-    appString ifc;
+    std::string ifc;
     in_addr gwIp;
     ether_addr gwMac;
     in_addr ifcIp;

@@ -261,6 +261,7 @@ appInt NewChannelHandler::ackRecv() {
 
     sendPacketLock.lock();
     auto startedWith = senderBuffer.lastAcked;
+    appInt16 normalisedMaxAckNo = maxAck - senderBuffer.lastAcked;
     while(packets){
         auto pkt = packets;
         packets = (Packet *)packets->next;
@@ -268,7 +269,7 @@ appInt NewChannelHandler::ackRecv() {
         if(pkt->header.ackNo == maxAck){
             ackRecv(pkt);
         }
-        else if(normalisedOrigAckNo > maxAck){
+        else if(normalisedOrigAckNo > normalisedMaxAckNo){
             ackRecv(pkt);
         }
         getPacketPool().freePacket(pkt);
@@ -526,6 +527,7 @@ void NewChannelHandler::sendAck(Packet* origPkt, appInt16 ackno) {
     if(ackHdr){
         pkt->optHeaders = ackHdr;
         pkt->header.flag |= FLAG_CTR;
+        ackHeaderLL = NULL;
     }
     send(pkt);
     if(pkt->optHeaders)
