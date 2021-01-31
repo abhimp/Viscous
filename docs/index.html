@@ -1,0 +1,146 @@
+﻿<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Viscous - Home</title>
+        <link rel="icon" href="images/favicon.gif" type="image/x-icon"/>
+        <!--[if lt IE 9]>
+            <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <link rel="shortcut icon" href="images/favicon.gif" type="image/x-icon"/>
+        <link rel="stylesheet" type="text/css" href="css/styles.css"/>
+    </head>
+    <body>
+        <div class="bg">
+            <!--start container-->
+            <div id="container">
+                <!--start header-->
+                <header>
+                    <!--start logo-->
+                    <a href="#" id="logo"><h1>Viscous</h1></a>
+                    <!--end logo-->
+                    <!--start menu-->
+                    <nav>
+                        <ul>
+                            <li><a href="index.html" class="current">Home</a></li>
+                            <li><a href="protocol.html">Protocol</a></li>
+                            <!-- <li><a href="about.html">About</a></li> -->
+                            <li><a href="results.html">Results</a></li>
+                            <li><a href="links.html">Links</a></li>
+                            <li><a href="contacts.html">Contact</a></li>
+                        </ul>
+                    </nav>
+                    <!--end menu-->
+                    <!--end header-->
+                </header>
+                <!--start intro-->
+                <section id="intro">
+                    <hgroup>
+                    <h2>An End to End Protocol for Ubiquitous Communication over Internet of Everything</h2>
+                    </hgroup>
+                </section>
+                <!--end intro-->
+
+                <!--start holder-->
+                <div class="holder_content">
+                    <h3>Internet</h3>
+                    <figure class="resplot">
+                        <p style="text-align: justify;">The Internet follows the conceptual design from a set of protocol suites where the major com-
+                        ponents are the network layer protocol, termed as Internet Protocol (IP), and the connection
+                        based reliable transport layer protocol, known as Transmission Control Protocol (TCP), which
+                        together popularly form the TCP/IP protocol suite that is the base for today’s Internet
+                        architecture. However, during the last decade, it was well felt that the basic Internet architecture
+                        based on TCP/IP protocol suite is not suitable for growing demands of extending the Internet
+                        over a large number of smart devices at the edge, that spans from the smart handheld devices
+                        to the network of low power sensors and actuators, known as Internet of Things (IoT). The
+                        increasing number of edge devices reduces the scalability of the present Internet architecture,
+                        fundamentally because the nature of data traffic is different for today’s Internet from the one
+                        that was envisioned during the development of the TCP/IP protocol suites.</p>
+                        <!-- <ul>
+                            <li>TCP/IP protocol stack designed in 70’s</li>
+                            <li>Provides connectivity between devices</li>
+                            </ul> -->
+                    </figure>
+                    <figure class="resplot">
+                        <img src="images/cloud_computing1.jpg" width="450px" alt="Internet">
+                        <div align="center">Image source: http://www.neil-t.com</div>
+                    </figure>
+                </div>
+
+                <div class="holder_content">
+                    <h3>Limitations of Current End-to-end Transport Protocols</h3>
+                    <section class="group1">
+                        <div align="center"><b>Devices are Mobile</b></div>
+                        <center><img src="images/todaysInternet1.jpg"></center>
+                        <p class="justify">Supporting seamless communication during mobility is one of the
+                        fundamental requirements for today’s Internet. However TCP is a connection oriented protocol, a
+                        connection in TCP is identified by the tuple (source IP, destination IP, source port,
+                        destination port). If one of the source or destination IP changes, the ongoing TCP connection
+                        needs to be dropped and a new connection needs to be established. TCP connection
+                        establishment and termination requires three handshake messages each, and therefore the
+                        signaling overhead for TCP is considerably high for a mobile device when it keeps on
+                        sending multiple flows.</p>
+                    </section>
+                    <section class="group2">
+                        <div align="center"><b>Devices are Multihomed</b></div>
+                        <center><img src="images/todaysInternet2.jpg"></center>
+                        <p class="justify">If a device is connected to the Internet via multiple network interfaces,
+                        it is called a multihomed device. Multihomed devices have the power to transmit or
+                        receive data via multiple paths through multiple physical interfaces. However, a normal
+                        TCP cannot utilize multiple interfaces available to a multihomed device.</p>
+                    </section>
+                    <section class="group3">
+                        <div align="center"><b>Traffic are device-to-device</b></div>
+                        <center><img src="images/todaysInternet3.jpg"></center>
+                        <p class="justify">TCP employs a slow start phase to handle network congestion. How-
+                        ever, a short-lived flow may fail to come out of the TCP slow start phase, resulting in
+                        underutilization of available network capacity [6, 7]. Interestingly, many of the today’s
+                        application over Internet, like web browsing, IoT communication, many smartphone
+                        applications (known as Apps) generate short lived flows.</p>
+                    </section>
+                    <!-- <img src="images/todaysInternet.jpg"> -->
+                </div>
+
+                <!--end holder-->
+                <!-- <div class="holder_content">
+                    <h3>News Articles</h3>
+                    <p>(Click on the images* for the article)</p>
+                    <section class="group1">
+                        <h3>Chattisgarh</h3>
+                        <a class="photo_hover3" href="http://timesofindia.indiatimes.com/city/raipur/22-injured-in-Chhattisgarh-bus-accident/articleshow/49804415.cms" target = "_blank"><img src="images/acc1.jpg" width="260" height="214" alt="crowd"/></a>
+                    </section>
+                    <section class="group1">
+                        <h3>Kerala</h3>
+                        <a class="photo_hover3" href="http://www.thehindu.com/news/national/kerala/5-killed-as-buses-collide-near-chadayamangalam/article4916970.ece" target = "_blank"><img src="images/acc2.jpg" width="260" height="214" alt="crowd"/></a>
+                    </section>
+                    <section class="group1">
+                        <h3>Tamil Nadu</h3>
+                        <a class="photo_hover3" href="http://www.ndtv.com/tamil-nadu-news/36-passengers-injured-as-2-buses-collide-head-on-in-tamil-nadu-1235600" target = "_blank"><img src="images/acc3.jpg" width="260" height="214" alt="crowd"/></a>
+                    </section>
+                    <section class="group1">
+                        <h3>Kerala</h3>
+                        <a class="photo_hover3" href="http://www.newindianexpress.com/cities/kochi/article471873.ece" target = "_blank"><img src="images/acc4.jpg" width="260" height="214" alt="crowd"/></a>
+                    </section>
+                    <section class="group1">
+                        <h3>Andhra Pradesh</h3>
+                        <a class="photo_hover3" href="http://www.ndtv.com/others-news/9-killed-8-injured-as-bus-collides-with-autorickshaw-in-andra-pradesh-783377" target = "_blank"><img src="images/acc5.jpg" width="260" height="214" alt="crowd"/></a>
+                    </section>
+                    <section class="group1">
+                        <h3>Delhi</h3>
+                        <a class="photo_hover3" href="http://www.ndtv.com/delhi-news/man-disabled-in-road-accident-gets-over-rs-26-lakh-compensation-1219930" target = "_blank"><img src="images/acc6.jpg" width="260" height="214" alt="crowd"/></a>
+                    </section>
+
+                </div>
+                <div class="holder_content">
+                    <section class="group1">
+                        <h3>An Interesting Data</h3>
+                        <a class="photo_hover3" href="https://data.gov.in/catalog/number-buses-owned-public-and-private-sectors-india" target="_blank"><img src="images/datagov.jpg" width="800" height="300" alt="data"/></a>
+                    </section>
+                </div>
+
+                <p id="p02">*Some of the images in the news article are just representative and not related to the article.</p> -->
+
+            </div>
+        </div>
+    </body>
+</html>
