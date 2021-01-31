@@ -55,8 +55,10 @@ public:
     virtual ~SendThroughInterface();
     int init();
     int sendPkt(Packet *pkt, in_addr dst_ip, appInt dst_port);
+    Interface::SendMsgBuffer *makeMsg(Packet *pkt, in_addr dst_ip, appInt dst_port);
     in_addr getLocalIpNetwork();
     void getIface(appString iface, appInt len = 0);
+    appBool checkIface(appString iface);
     in_addr getLocIp(){return src_ip;}
     in_addr getGwIp(){return gw_ip;}
     ether_addr getLocMac(){return e_src_addr;}

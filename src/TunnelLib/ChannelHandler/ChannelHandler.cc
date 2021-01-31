@@ -136,6 +136,7 @@ void ChannelHandler::freePacket(Packet* pkt) {
         tmp.fingerPrint=pkt->header.fingerPrint;
         tmp.flowId=pkt->header.flowId;
         parent->recvAck(tmp, pkt->header.flowSeqNo);
+        STOP_PACKET_PROFILER_CLOCK(pkt)
     }
     getPacketPool().freePacket(pkt);
 }

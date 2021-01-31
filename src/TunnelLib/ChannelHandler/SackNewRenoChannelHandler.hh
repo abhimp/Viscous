@@ -32,8 +32,8 @@
 #include "../../util/ConditonalWait.hh"
 #include "BasicChannelHandler.hh"
 
-#define MAX_CONG_WINDOW (APP_INT16_CNT/2)
-#define INITIAL_SSTHRESH (200)//(MAX_CONG_WINDOW/2)
+//#define MAX_CONG_WINDOW (APP_INT16_CNT/2)
+//#define INITIAL_SSTHRESH (200)//(MAX_CONG_WINDOW/2)
 
 namespace channelHandler{
 

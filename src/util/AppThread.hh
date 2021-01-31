@@ -35,7 +35,7 @@ namespace util {
 
 class AppThread {
 public:
-    AppThread();
+    AppThread(appBool free = FALSE);
     virtual ~AppThread();
 
     static void *runInsideThread(void *data);
@@ -49,6 +49,7 @@ private:
     int createThread(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
     appInt running;
     pthread_t tid;
+    appBool free; //free at the end
 };
 
 } /* namespace util */

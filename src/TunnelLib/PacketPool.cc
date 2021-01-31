@@ -116,6 +116,12 @@ void PacketPool::freePacket(Packet *pkt) {
     APP_ASSERT(pkt);
     freeOptionalHeaderToPool(pkt->optHeaders);
     pkt->optHeaders = NULL;
+#ifdef __PROFILER_ENABLED__
+    if (pkt->prof)
+    	delete pkt->prof;
+    pkt->prof = NULL;
+    pkt->ticks = 0;
+#endif
 #ifndef NO_POOL
     pool.push(pkt);
 #else

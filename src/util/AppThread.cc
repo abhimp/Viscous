@@ -39,7 +39,7 @@ struct APP_THREAD_DATA{
     void *data;
 };
 
-AppThread::AppThread():running(0), tid(0) {
+AppThread::AppThread(appBool free):running(0), tid(0), free(free) {
     // TODO Auto-generated constructor stub
 
 }
@@ -66,12 +66,14 @@ void* AppThread::runInsideThread(void* data) {
     }
 //    self->run();
     self->running --;
+    if(self->free and self->running == 0){
+        delete self;
+    }
     return NULL;
 }
 
 pthread_t AppThread::start() {
         auto self = this;
-//        auto data = APP_PACK(self);
         APP_THREAD_DATA *dt = new APP_THREAD_DATA();
         dt->count = 0;
         dt->self = self;

@@ -20,20 +20,22 @@ CFLAGS          := \
                 -Wno-pointer-sign \
                 -Wno-sign-compare \
                 -I"src/common_lib/header" \
+                -I"src/Profiler" \
                 -Wall -c \
                 -DNEW_CHANNEL_HANDLE \
                 -DDEV_STANDALONE=1 \
-				-DNO_POOL \
+                -DNO_POOL \
                 -pthread
 
 CCFLAGS         := \
                 -std=c++0x \
                 -Wno-sign-compare \
                 -I"src/common_lib/header" \
+                -I"src/Profiler" \
                 -Wall \
                 -DNEW_CHANNEL_HANDLE \
                 -DDEV_STANDALONE=1 \
-				-DNO_POOL \
+                -DNO_POOL \
                 -fmessage-length=0 \
                 -pthread
 
@@ -75,7 +77,7 @@ _INTERFACE_CONTROLLER_OBJ := \
                 src/TunnelLib/InterfaceController/SendThroughInterface.o \
                 src/TunnelLib/InterfaceController/SendingSocket.o \
                 src/TunnelLib/InterfaceController/arpResolv.o \
-				src/TunnelLib/InterfaceController/InterfaceMonitor.o \
+                src/TunnelLib/InterfaceController/InterfaceMonitor.o \
 
 
 _CHANNEL_HANDLER_OBL := \
@@ -90,8 +92,7 @@ _TUNNEL_LIB_OBJ := \
                 src/TunnelLib/multiplexer.o \
                 src/TunnelLib/PacketPool.o \
                 src/TunnelLib/CommonHeaderImpl.o \
-                src/TunnelLib/ChannelScheduler/InterfaceScheduler.o \
-				src/TunnelLib/ChannelScheduler/NewChannelScheculer.o \
+                src/TunnelLib/ChannelScheduler/NewChannelScheculer.o \
                 src/TunnelLib/Packet.o \
                 src/TunnelLib/ClientConnection.o \
                 src/TunnelLib/Connection.o \
@@ -102,8 +103,9 @@ _TUNNEL_LIB_OBJ := \
                 $(_CHANNEL_HANDLER_OBL) \
                 $(_INTERFACE_CONTROLLER_OBJ)
 
-#                src/TunnelLib/ChannelHandler/CubicChannelHandler.o 
-#                src/TunnelLib/ChannelHandler/log.o 
+#                src/TunnelLib/ChannelScheduler/InterfaceScheduler.o \
+#                src/TunnelLib/ChannelHandler/CubicChannelHandler.o
+#                src/TunnelLib/ChannelHandler/log.o
 
 _UTIL_OBJ       := \
                 src/util/ThreadPool.o \
@@ -127,6 +129,9 @@ _EVAL_OBJ       := \
 #                evaluation/TcpMultiplexingTrafficGenerator.o \
 #                evaluation/PacketHijacking.o \
 
+_PROFILER_OBJ    := \
+                src/Profiler/Profiler.o
+
 OUTDIR          := $(DEBUG_OUTDIR)
 
 ifeq ($(release), yes)
@@ -138,13 +143,19 @@ ifneq ($(OUTPUT_DIR),)
     OUTDIR := $(OUTPUT_DIR)
 endif
 
+ifeq ($(enable_profile), yes)
+    CFLAGS      += -D__PROFILER_ENABLED__
+    CCFLAGS     += -D__PROFILER_ENABLED__
+endif
+
 
 _OBJS           := ${_COMMON_LIB_OBJ}
 _OBJS           += ${_UTIL_OBJ}
 _OBJS           += ${_TUNNEL_LIB_OBJ}
 _OBJS           += ${_EVAL_OBJ}
+_OBJS           += ${_PROFILER_OBJ}
 
-LIBS            := 
+LIBS            :=
 #-lnfnetlink -lnetfilter_queue
 
 
@@ -152,6 +163,7 @@ COMMON_LIB_OBJ  := $(patsubst %,$(OUTDIR)/%,$(_COMMON_LIB_OBJ))
 UTIL_OBJ        := $(patsubst %,$(OUTDIR)/%,$(_UTIL_OBJ))
 TUNNEL_LIB_OBJ  := $(patsubst %,$(OUTDIR)/%,$(_TUNNEL_LIB_OBJ))
 EVAL_OBJ        := $(patsubst %,$(OUTDIR)/%,$(_EVAL_OBJ))
+PROFILER_OBJ    := $(patsubst %,$(OUTDIR)/%,$(_PROFILER_OBJ))
 OBJS            := $(patsubst %,$(OUTDIR)/%,$(_OBJS))
 SUBDIRS         := $(patsubst %,$(OUTDIR)/%,$(_SUBDIRS))
 
@@ -159,6 +171,7 @@ COMMON_LIB_DEP  := $(patsubst %.o,%.d,$(COMMON_LIB_OBJ))
 UTIL_DEP        := $(patsubst %.o,%.d,$(UTIL_OBJ))
 TUNNEL_LIB_DEP  := $(patsubst %.o,%.d,$(TUNNEL_LIB_OBJ))
 EVAL_DEP        := $(patsubst %.o,%.d,$(EVAL_OBJ))
+PROFILER_DEP    := $(patsubst %.o,%.d,$(PROFILER_OBJ))
 DEPS            := $(patsubst %.o,%.d,$(OBJS))
 
 #=========================================
@@ -183,16 +196,16 @@ ifeq ($(LOAD), yes)
 endif
 
 clean:
-	rm -rf $(OBJS) $(DEPS) 
+	rm -rf $(OBJS) $(DEPS)
 	rm -rf $(OUTDIR)/$(OUTPUT_LIB_OBJ) $(OUTDIR)/$(OUTPUT_BINARY)
 	rm -rf $(OUTDIR)
 
-doxy-clean: 
+doxy-clean:
 	@rm -rf html latex
 doxy:
 	doxygen Doxyfile
 
-$(OUTDIR)/$(OUTPUT_LIB_OBJ): $(COMMON_LIB_OBJ) $(UTIL_OBJ) $(TUNNEL_LIB_OBJ)
+$(OUTDIR)/$(OUTPUT_LIB_OBJ): $(COMMON_LIB_OBJ) $(UTIL_OBJ) $(TUNNEL_LIB_OBJ) $(PROFILER_OBJ)
 	@echo 'archiving'
 	@$(AR) -rv $@ $^
 

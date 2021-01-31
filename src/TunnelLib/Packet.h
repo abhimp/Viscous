@@ -29,6 +29,7 @@
 
 #include <common.h>
 #include <arpa/inet.h>
+#include <Profiler.hh>
 
 #include "../util/AppLLQueue.hh"
 #include "../util/AppStack.hh"
@@ -37,6 +38,28 @@
 
 #define MAX_PACKET_DATA_SIZE 2048
 #define MAX_PACKET_SENT_DATA_SIZE 1300
+
+#ifdef __PROFILER_ENABLED__
+#define PACKET_PROF(x) (x->prof)
+
+#define PROFILE_PERPACKET_WAIT_START(pkt) PROFILE_PERPACKET_WAIT_START_DUMMY(PACKET_PROF(pkt), __FILE__, __LINE__);
+#define PROFILE_PERPACKET_WAIT_STOP(pkt) PROFILE_PERPACKET_WAIT_STOP_DUMMY(PACKET_PROF(pkt), Profiler::getTime(), __FILE__, __LINE__);
+#define PROFILE_PERPACKET_WAIT_STOP_ALL(pkt) {auto t = Profiler::getTime();for(Packet *x = (pkt); x; x=(Packet *)x->next){PROFILE_PERPACKET_WAIT_STOP_DUMMY(PACKET_PROF(pkt), t, __FILE__, __LINE__);}}
+
+#define START_PACKET_PROFILER_CLOCK(pkt) {(pkt)->ticks = Profiler::getTime();}
+#define START_PACKET_PROFILER_CLOCK_ALL(pkt) {for(Packet *x = (pkt); x; x=(Packet *)x->next){ x->ticks = Profiler::getTime();}}
+#define STOP_PACKET_PROFILER_CLOCK(pkt) {if((pkt)) {PROFILE_PACKET_WAIT_UPDATE((pkt)->ticks, PACKET_PROF(pkt));}}
+#define STOP_PACKET_PROFILER_CLOCK_ALL(pkt) {for(Packet *x = (pkt); x; x=(Packet *)x->next){ PROFILE_PACKET_WAIT_UPDATE(x->ticks, PACKET_PROF(pkt));}}
+#else
+#define PROFILE_PERPACKET_WAIT_START(pkt)
+#define PROFILE_PERPACKET_WAIT_STOP(pkt)
+#define PROFILE_PERPACKET_WAIT_STOP_ALL(pkt)
+
+#define START_PACKET_PROFILER_CLOCK(pkt)
+#define START_PACKET_PROFILER_CLOCK_ALL(pkt)
+#define STOP_PACKET_PROFILER_CLOCK(pkt)
+#define STOP_PACKET_PROFILER_CLOCK_ALL(pkt)
+#endif
 
 /*
 #======================================================================
@@ -209,8 +232,20 @@ struct PacketHeader{
 
 class Packet:public util::LL_Node{
 public:
-    Packet(): util::LL_Node(), capa(0), len(0), header(), data(NULL), accepted(FALSE), newFlow(FALSE), processed(FALSE), recvTS(0), optHeaders(NULL){}
-    void reInitHeader(){len = 0; header.reinit(); accepted = FALSE; newFlow = FALSE; processed = FALSE; recvTS = 0; optHeaders = NULL;};
+    Packet(): util::LL_Node(), capa(0), len(0), header(), data(NULL), accepted(FALSE), newFlow(FALSE), processed(FALSE), recvTS(0), optHeaders(NULL)
+#ifdef __PROFILER_ENABLED__
+    ,ticks(0), prof(new Profiler::PerPacketProfile())
+#endif
+    {}
+    void reInitHeader(){len = 0; header.reinit(); accepted = FALSE; newFlow = FALSE; processed = FALSE; recvTS = 0; optHeaders = NULL;
+#ifdef __PROFILER_ENABLED__
+    ticks = 0;
+    if (prof)
+        	delete prof;
+    auto x = new Profiler::PerPacketProfile();
+    prof = x; //std::shared_ptr<Profiler::PerPacketProfile>(x);
+#endif
+    };
     appInt capa;
     appInt len;
     PacketHeader header;
@@ -222,6 +257,10 @@ public:
     sockaddr_in src_addr;
     sockaddr_in dest_addr;
     PacketOptionalAbstractHeader *optHeaders;
+#ifdef __PROFILER_ENABLED__
+    Profiler::ProfTime ticks;
+    Profiler::PerPacketProfile *prof;
+#endif
     static const appInt8 maxOptHeader = 16;
     void operator=(Packet other);
     void operator=(Packet *other);

@@ -93,7 +93,7 @@ appSInt ServerConnection::recvPacketFrom(Packet *pkt, RecvSendFlags &flags){
             Client4Server *cl = new Client4Server(newPkt->header.fingerPrint, NULL, this);
             std::shared_ptr<Client4Server> x(cl);
             pendingClients[newPkt->header.fingerPrint] = x;
-            auto pIfcId = ifcMon->getPrimaryInterfaceId();
+            auto pIfcId = ifcMon->getSuitableInterfaceId(pkt->src_addr.sin_addr.s_addr);
             newPkt->header.ifcsrc = pIfcId;
             newPkt->header.ifcdst = pkt->header.ifcsrc;
             newPkt->optHeaders = getIpHeaders(&newPkt->header.OHLen);
@@ -106,9 +106,9 @@ appSInt ServerConnection::recvPacketFrom(Packet *pkt, RecvSendFlags &flags){
             Packet *newPkt = getPacketPool().getNewPacketWithData();
             newPkt->header.fingerPrint = nonce2FingerPrint[nonce];
             newPkt->header.flag = FLAG_ACK|FLAG_SYN;
-            Client4Server *cl = new Client4Server(newPkt->header.fingerPrint, NULL, this);
-            std::shared_ptr<Client4Server> x(cl);
-            pendingClients[newPkt->header.fingerPrint] = x;
+//            Client4Server *cl = new Client4Server(newPkt->header.fingerPrint, NULL, this);
+//            std::shared_ptr<Client4Server> x(cl);
+//            pendingClients[newPkt->header.fingerPrint] = x;
             auto pIfcId = ifcMon->getPrimaryInterfaceId();
             newPkt->header.ifcsrc = pIfcId;
             newPkt->header.ifcdst = pkt->header.ifcsrc;
@@ -141,9 +141,9 @@ appSInt ServerConnection::recvPacketFrom(Packet *pkt, RecvSendFlags &flags){
         }
         client = iter->second;
         pendingClients.erase(pkt->header.fingerPrint);
-        appInt64 nonce = fingerPrint2Nonce[pkt->header.fingerPrint];
-        fingerPrint2Nonce.erase(pkt->header.fingerPrint);
-        nonce2FingerPrint.erase(nonce);
+//        appInt64 nonce = fingerPrint2Nonce[pkt->header.fingerPrint];
+//        fingerPrint2Nonce.erase(pkt->head er.fingerPrint);
+//        nonce2FingerPrint.erase(nonce);
 
         clients[pkt->header.fingerPrint] = client;
         Multiplexer *mux = new Multiplexer(client.get(), pkt->header.fingerPrint);
@@ -292,6 +292,11 @@ appInt ServerConnection::timeoutEvent(appTs time){
             }
         }
         for(auto x : toBeDeleted){
+            if(hasKey(fingerPrint2Nonce, x)){
+                appInt64 nonce = fingerPrint2Nonce[x];
+                fingerPrint2Nonce.erase(x);
+                nonce2FingerPrint.erase(nonce);
+            }
             clients.erase(x);
             LOGE("Closing %d", x);
         }

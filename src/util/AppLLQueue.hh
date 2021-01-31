@@ -60,6 +60,7 @@ public:
     inline T *getFromQueue();
     inline appBool empty();
     inline T *getAllFromQueue();
+    inline int getQueueSize(){return queueSize;}
 private:
     inline void add(LL_Node* node);
     LL_Node *beg, *end;

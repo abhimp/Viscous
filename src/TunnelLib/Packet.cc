@@ -29,19 +29,6 @@
 #include <arpa/inet.h>
 #include "PacketPool.hh"
 
-#if defined(__linux__)
-#  include <endian.h>
-#elif defined(__FreeBSD__) || defined(__NetBSD__)
-#  include <sys/endian.h>
-#elif defined(__OpenBSD__)
-#  include <sys/types.h>
-#  define be16toh(x) betoh16(x)
-#  define be32toh(x) betoh32(x)
-#  define be64toh(x) betoh64(x)
-#endif
-
-#define htonll(x) ((1==htonl(1)) ? (x) : ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
-#define ntohll(x) ((1==ntohl(1)) ? (x) : ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
 
 #define ADJUST_DATA_LEN(_l, _data, _len) \
     _data += _l; \
@@ -338,8 +325,16 @@ void Packet::cloneWithData(Packet* pkt) {
 void Packet::operator =(Packet other) {
     auto tmp1 = data;
     auto tmp2 = optHeaders;
+#ifdef __PROFILER_ENABLED__
+    auto tmp3 = prof;
+#endif
     memcpy(this, &other, sizeof(Packet));
 //    *this = *pkt;
+
+#ifdef __PROFILER_ENABLED__
+//    memcpy(&prof, &tmp3, sizeof(tmp3));
+    prof = tmp3;
+#endif
     data = tmp1;
     optHeaders = tmp2;
 }

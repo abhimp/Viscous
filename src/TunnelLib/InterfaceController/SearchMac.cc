@@ -244,7 +244,7 @@ int getGatewayAddress(std::string iface, in_addr_t &a_ip, std::string s_ip, stru
     std::string tmp;
     std::string ip;
     if(getGatewayAndIface(iface, addr) != 0){
-        fprintf(stderr, "%s: no such device\n", iface);
+        fprintf(stderr, "%s: no such device\n", iface.c_str());
         return 1;
     }
     a_ip = addr;

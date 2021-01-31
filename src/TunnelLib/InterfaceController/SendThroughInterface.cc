@@ -31,6 +31,7 @@
 #include "SearchMac.hh"
 #include "../PacketPool.hh"
 
+extern appSInt globalUDPSocketFD;
 
 //SendThroughInterface::SendThroughInterface(appString intf, ether_addr dst_addr, in_addr src_ip, appInt src_port):
 //    src_ip(src_ip), e_dst_addr(dst_addr), device(), src_port(src_port),
@@ -261,6 +262,46 @@ uint16_t SendThroughInterface::udp4_checksum (ip iphdr, udphdr udpheader, appStr
 
 int SendThroughInterface::sendPkt(Packet* pkt, in_addr dst_ip,
         appInt dst_port) {
+//    if(globalUDPSocketFD){
+//        appByte a_data[2048];
+//        sockaddr_in addr;
+//        addr.sin_addr = dst_ip;
+//        addr.sin_port = dst_port;
+//        addr.sin_family = AF_INET;
+//
+//        auto data_len = encodeHeader(pkt, (appByte *)(a_data), 2048);
+//        sendto(globalUDPSocketFD, a_data, data_len, 0, (sockaddr *)&addr, sizeof(addr));
+//        return 0;
+//    }
+    auto msg = makeMsg(pkt, dst_ip, dst_port);
+    if(!msg){
+        return -1;
+    }
+    auto ret = opSock->sendMsgDirectly(msg);
+
+    return ret;
+}
+
+SendThroughInterface** getInterfaceSender() {
+    static SendThroughInterface *interfaceSender[INTERFACE_SENDER_CNT] = {NULL}; //0 will never used
+    return interfaceSender;
+}
+
+InterfaceInfo** getInterfaceInfos() {
+    static InterfaceInfo *interfaceInfos[INTERFACE_SENDER_CNT] = {NULL}; //0 will never used
+    return interfaceInfos;
+}
+
+void SendThroughInterface::getIface(appString iface, appInt len) {
+    if(!iface or !len)
+        return;
+    if(len <= strlen(interface))
+        return;
+    strcpy((char *)iface, interface);
+}
+
+Interface::SendMsgBuffer* SendThroughInterface::makeMsg(Packet* pkt, in_addr dst_ip,
+        appInt dst_port) {
 
     if(noDestMac){
 //        APP_ASSERT(0 && "Some problem in system");
@@ -278,7 +319,7 @@ int SendThroughInterface::sendPkt(Packet* pkt, in_addr dst_ip,
     auto a_datalen = encodeHeader(pkt, (appByte *)(a_data) , MY_UDP_PKT_SIZE - IP4_HDRLEN - UDP_HDRLEN);
     if(a_datalen == 0){
         Interface::getSendMsgPool().free(msg);
-        return -1;
+        return NULL;
     }
 
     msg->frame_len = a_datalen + IP4_HDRLEN + UDP_HDRLEN;
@@ -311,25 +352,10 @@ int SendThroughInterface::sendPkt(Packet* pkt, in_addr dst_ip,
     // UDP header
     memcpy (msg->ether_frame + IP4_HDRLEN, &udpHeader, UDP_HDRLEN);
 
-    auto ret = opSock->sendMsgDirectly(msg);
+    return msg;
 
-    return ret;
 }
 
-SendThroughInterface** getInterfaceSender() {
-    static SendThroughInterface *interfaceSender[INTERFACE_SENDER_CNT] = {NULL}; //0 will never used
-    return interfaceSender;
-}
-
-InterfaceInfo** getInterfaceInfos() {
-    static InterfaceInfo *interfaceInfos[INTERFACE_SENDER_CNT] = {NULL}; //0 will never used
-    return interfaceInfos;
-}
-
-void SendThroughInterface::getIface(appString iface, appInt len) {
-    if(!iface or !len)
-        return;
-    if(len <= strlen(interface))
-        return;
-    strcpy((char *)iface, interface);
+appBool SendThroughInterface::checkIface(appString iface) {
+    return strcmp(this->interface, (const char *)iface) == 0;
 }

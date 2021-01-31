@@ -56,7 +56,9 @@ NewChannelScheculer::~NewChannelScheculer() {
     close();
     for(auto i = 0; i < BASIC_CHANNEL_HANDLER_CHANNEL_COUNT; i++){
         if(channelHandlers[i]){
-            delete channelHandlers[i];
+            timeoutProducer().detach(channelHandlers[i]);
+            activeChannelHandlesList.erase((appInt8)i);
+//            delete channelHandlers[i]
             channelHandlers[i] = NULL;
         }
     }
@@ -82,8 +84,14 @@ appSInt NewChannelScheculer::sendPacketTo(appInt id, Packet* pkt) {
         controlPkt = pkt;
         controlPktLock.unlock();
     }
-    else
+    else if(pkt->header.flag & FLAG_FFN){
+        START_PACKET_PROFILER_CLOCK(pkt)
+        closePktsQueue.addToQueue(pkt);
+    }
+    else{
+        START_PACKET_PROFILER_CLOCK(pkt)
         outgoingPacketQueue.addToQueue(pkt);
+    }
     if(notify)
         waitForNewPacket.notify();
     return 0;
@@ -106,7 +114,7 @@ appSInt NewChannelScheculer::recvPacketFrom(Packet* pkt, RecvSendFlags& flags) {
     }
     APP_ASSERT(ifcRem < BASIC_CHANNEL_HANDLER_REMOTE_ADDRESS_COUNT && ifcRem > 0 && ifcLoc < BASIC_CHANNEL_HANDLER_REMOTE_ADDRESS_COUNT && ifcLoc > 0);
     appInt8 chId = (ifcLoc << 4) | (ifcRem&0x0f);
-    channelHandler::ChannelHandler *ch = channelHandlers[chId];
+    auto ch = channelHandlers[chId];
     if(ch == NULL){
         if(pkt->header.flag&FLAG_IFC)
             return -3;
@@ -146,9 +154,10 @@ void NewChannelScheculer::addRemote(appInt8 ifcRem, RemoteAddr* remoteAddr) {
 //    SendThroughInterface **local = getInterfaceSender();
     auto ifcMon = parent->getInterfaceMontor();
     for(auto ifcLoc = 0; ifcLoc < BASIC_CHANNEL_HANDLER_REMOTE_ADDRESS_COUNT; ifcLoc++){
-        if((!ifcMon || (*ifcMon)[ifcLoc] == NULL) and getInterfaceSender()[ifcLoc] == NULL)
+        if((!ifcMon || (*ifcMon)[ifcLoc] == NULL) and (*ifcMon)[ifcLoc] == NULL)
             continue;
-        addChannel(ifcLoc, ifcRem);
+        if(ifcMon->isReachable(ifcLoc, remoteAddr->ip.s_addr))
+            addChannel(ifcLoc, ifcRem);
     }
 }
 
@@ -188,7 +197,8 @@ void NewChannelScheculer::close() {
 }
 
 void NewChannelScheculer::readyToSend(appInt8 chId, appInt ready) {
-    waitForToken.notify();
+//    for(appInt i = 0; i < ready; i++)
+        waitForToken.notify();
 }
 
 void NewChannelScheculer::addChannel(appInt8 ifcLoc, appInt8 ifcRem) {
@@ -212,8 +222,10 @@ void NewChannelScheculer::addChannel(appInt8 ifcLoc, appInt8 ifcRem) {
     }
     ch->startUp();
     LOGD("Adding new channel");
-    channelHandlers[channelId] = ch;
-    timeoutProducer().attach(ch);
+    std::shared_ptr<channelHandler::ChannelHandler> chPtr(ch);
+    channelHandlers[channelId] = chPtr;
+    activeChannelHandlesList.insert(channelId);
+    timeoutProducer().attach(chPtr);
 }
 
 void NewChannelScheculer::run() {
@@ -258,6 +270,7 @@ void NewChannelScheculer::interfaceRemoved(appInt8 ifcLoc) {
     pktHdr->ifcId = ifcLoc;
     pktHdr->removed = 1;
     pkt->optHeaders = pktHdr;
+    START_PACKET_PROFILER_CLOCK(pkt)
     undeliveredPacketQueue.addToQueue(pkt);
     waitForNewPacket.notify();
 }
@@ -271,6 +284,7 @@ void NewChannelScheculer::notifyDeadChannel(appInt8 chId) {
     }
 
     auto pktLL = ch->getUndeliveredPackets();
+    STOP_PACKET_PROFILER_CLOCK_ALL(pktLL)
     auto cnt = undeliveredPacketQueue.addLLToQueue(pktLL);
     readyToSendLock.lock();
     channelHandlers[chId] = NULL;
@@ -281,27 +295,11 @@ void NewChannelScheculer::notifyDeadChannel(appInt8 chId) {
         cnt--;
     }
     timeoutProducer().detach(ch);
-    delete ch;
+//    delete ch;
+//    channelHandlers[chId] = NULL;
 }
 
-void NewChannelScheculer::schedule() {
-    auto startedNextChildWith = nextChid;
-    while(1){
-        waitForNewPacket.wait();
-        if(waitToClose)
-            break;
-        readyToSendLock.lock();
-        if(!channelHandlers[nextChid] or !channelHandlers[nextChid]->haveCell()){
-            nextChid++;
-            if(nextChid == BASIC_CHANNEL_HANDLER_CHANNEL_COUNT)
-                nextChid=1;
-            readyToSendLock.unlock();
-            waitForNewPacket.notify();
-            if(nextChid == startedNextChildWith){
-                break;
-            }
-            continue;
-        }
+appSInt NewChannelScheculer::sendNextPacketUsingCh(appInt8 chId) {
         Packet *pkt = NULL;
         if(controlPkt){
             controlPktLock.lock();
@@ -309,33 +307,94 @@ void NewChannelScheculer::schedule() {
             controlPkt = NULL;
             controlPktLock.unlock();
         }
-        if(!pkt)
+        if(!pkt){
             pkt = undeliveredPacketQueue.getFromQueue();
-        if(!pkt)
+            STOP_PACKET_PROFILER_CLOCK(pkt);
+        }
+        if(!pkt){
+            pkt = closePktsQueue.getFromQueue();
+            STOP_PACKET_PROFILER_CLOCK(pkt);
+        }
+        if(!pkt){
             pkt = outgoingPacketQueue.getFromQueue();
+            STOP_PACKET_PROFILER_CLOCK(pkt);
+        }
         APP_ASSERT(pkt)
-//                break;
-        channelHandlers[nextChid]->sendPacket(pkt);
-//        }
+    	PROFILE_PERPACKET_WAIT_STOP_ALL(pkt);
+        channelHandlers[chId]->sendPacket(pkt);
+        return 0;
+}
+
+#define MPTCP_DEFAULT_SCHED
+//#define ROUNDROBIN_SCHED
+//#define ON_DEMAND_SCHED
+
+static int compareChannelsBasedonRTT(const void *arg1, const void *arg2, void *data){
+    auto chId1 = *((appInt8 *)arg1);
+    auto chId2 = *((appInt8 *)arg2);
+    auto chans = (std::shared_ptr<channelHandler::ChannelHandler> *)data;
+    return (int)(chans[chId1]->getRTT() - chans[chId2]->getRTT());
+}
+
+appSInt NewChannelScheculer::schedule() {
+
+#if defined(ROUNDROBIN_SCHED) || defined(ON_DEMAND_SCHED)
+    auto startedNextChildWith = nextChid;
+    while(1){
+        waitForNewPacket.wait();
+        if(waitToClose)
+            break;
+        readyToSendLock.lock();
+        if(!channelHandlers[nextChid] or !channelHandlers[nextChid]->spaceInCwnd()){
+            nextChid++;
+            if(nextChid == BASIC_CHANNEL_HANDLER_CHANNEL_COUNT)
+                nextChid=1;
+            readyToSendLock.unlock();
+            waitForNewPacket.notify(); //compensating previous wait() call
+            if(nextChid == startedNextChildWith){
+                break;
+            }
+            continue;
+        }
+        sendNextPacketUsingCh(nextChid);
+        readyToSendLock.unlock();
+#ifdef ON_DEMAND_SCHED
+        nextChid++;
+        if(nextChid == BASIC_CHANNEL_HANDLER_CHANNEL_COUNT)
+            nextChid=1;
+#endif
+    }
+#elif defined(MPTCP_DEFAULT_SCHED) //send to lowest rtt first
+    while(1){
+        waitForNewPacket.wait();
+        if(waitToClose)
+            break;
+        readyToSendLock.lock();
+        appSInt64 minRTT = 0;
+        appInt8 chId = 0;
+        for(auto x: activeChannelHandlesList){
+            auto ch = channelHandlers[x];
+            if(!ch)
+                continue;
+            auto xrtt = ch->getRTT();
+            if (chId == 0 or minRTT > xrtt){
+                if (!ch->spaceInCwnd())
+                    continue;
+                chId = x;
+                minRTT = xrtt;
+            }
+        }
+        LOGI("Sending data with chid: %d", chId)
+        if(chId == 0){ //None of the channels have any free space
+            readyToSendLock.unlock();
+            waitForNewPacket.notify();
+            break;
+        }
+        sendNextPacketUsingCh(chId);
         readyToSendLock.unlock();
     }
-//    for(; nextChid < BASIC_CHANNEL_HANDLER_CHANNEL_COUNT; nextChid++){
-//        if(!channelHandlers[nextChid])
-//            continue;
-//        Packet *pkt = NULL;
-//        while(channelHandlers[nextChid]->haveCell()){
-//            pkt = undeliveredPacketQueue.getFromQueue();
-//            if(!pkt)
-//                pkt = outgoingPacketQueue.getFromQueue();
-//            if(!pkt)
-//                break;
-//            channelHandlers[nextChid]->sendPacket(pkt);
-//        }
-//        if(!pkt)
-//            break;
-//    }
-//    if(nextChid == BASIC_CHANNEL_HANDLER_CHANNEL_COUNT)
-//        nextChid=1;
+#endif
+        return 0;
 }
 
 } /* namespace util */

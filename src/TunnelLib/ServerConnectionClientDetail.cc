@@ -63,6 +63,8 @@ Client4Server::~Client4Server() {
     stopThread = TRUE;
     recvSem.notify();
     waitToClose.wait();
+    PROFILER_DUMP
+    PROFILER_RESET
 }
 
 void Client4Server::setupInterfaces(appInt8 ifcRem, sockaddr_in &remAddr){
@@ -82,6 +84,7 @@ appSInt Client4Server::sendPacketTo(appInt id, Packet *pkt){
 
 inline appSInt Client4Server::recvProcPacket(Packet* pkt) {
     APP_ASSERT(pkt->processed);
+    START_PACKET_PROFILER_CLOCK(pkt)
     recvQueue.addToQueue(pkt);
     recvSem.notify();
     return 0;
@@ -99,6 +102,7 @@ appSInt Client4Server::recvPacketFrom(Packet *pkt, RecvSendFlags &flags){
         ret = 2;
         goto out;
     }
+    START_PACKET_PROFILER_CLOCK(pkt)
     recvQueue.addToQueue(pkt);
     recvSem.notify();
     return 0;
@@ -159,6 +163,7 @@ void Client4Server::run() {
             return;
         }
         auto pkt = recvQueue.getFromQueue();
+        STOP_PACKET_PROFILER_CLOCK(pkt)
         if(pkt->header.flag&FLAG_CFN){
 //            closeClient(client);
             close();
@@ -184,7 +189,7 @@ appSInt Client4Server::recvPacketAfterThread(Packet* pkt,
         RecvSendFlags& flags) {
         appSInt ret = 0;
         if(pkt->header.ifcdst and pkt->header.ifcsrc){
-            if(!pkt->processed)
+            if(!pkt->processed and ifcSch)
                 ifcSch->recvPacketFrom(pkt, flags);
             ret = mux->recvPacketFrom(pkt, flags);
         }

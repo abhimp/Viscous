@@ -66,6 +66,8 @@ public:
     virtual void startUp();
     virtual appInt timeoutEvent(appTs time);
     inline void updateRtt(Packet *pkt);
+    virtual appSInt64 getRTT() {return srtt;}
+    virtual bool spaceInCwnd();
 //    virtual bool haveCell();
 protected:
     virtual inline void updateCwnd(cwnd_update_type type, float value = 0.);

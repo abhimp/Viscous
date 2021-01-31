@@ -39,6 +39,7 @@
 #include <linux/rtnetlink.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+#include <vector>
 
 #define hasKey(_map, _key) (_map.find(_key) != _map.end())
 
@@ -264,7 +265,82 @@ appInt8 InterfaceMonitor::getPrimaryInterfaceId() {
     return 0;
 }
 
+appInt8 InterfaceMonitor::getSuitableInterfaceId(in_addr_t destinationIp) {
+//    if (routeEntries.size() == 0){
+//        exit(34); //arbit exit code
+//    }
+
+    int mask = 0;
+    appInt8 ifcId = 0;
+    appBool found = FALSE;
+    auto routeEntries = populateRouteEntries();
+    for(auto entry : routeEntries){
+        if(entry.destination == (destinationIp&entry.mask)){
+            if(mask < entry.mask or (mask == 0 and mask == entry.mask)){
+                for(auto i = 0; i < INTERFACE_SENDER_CNT; i++) {
+                    auto x = interfaceSender[i];
+                    if(!x)
+                        continue;
+                    if(!x->checkIface((appString)entry.iface))
+                        continue;
+                    ifcId = i;
+                    mask=entry.mask;
+                    found = TRUE;
+                    break;
+                }
+            }
+        }
+    }
+//    if(!found)
+//        exit(__LINE__);
+    return ifcId;
+}
+
+appBool InterfaceMonitor::isReachable(appInt8 ifcLocId, in_addr_t remIp) {
+    int mask = 0;
+    appInt8 ifcId = 0;
+    appBool found = FALSE;
+    auto routeEntries = populateRouteEntries();
+    for(auto entry : routeEntries){
+        if(interfaceSender[ifcLocId] and interfaceSender[ifcLocId]->checkIface((appString)entry.iface)){
+            if(entry.destination == (remIp&entry.mask)){
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
 appInt8 InterfaceMonitor::getNextInterfaceId() {
     nextInterfaceId++;
     return nextInterfaceId;
+}
+
+std::vector<RouteEntry> InterfaceMonitor::populateRouteEntries() {
+    std::vector<RouteEntry> entries;
+    char buf[2048];
+    char iface[IF_NAMESIZE];
+    long dest, gw, msk;
+    int x[4];
+
+    FILE *file = fopen("/proc/net/route", "r");
+    if (!file)
+        return entries;
+
+    RouteEntry rt;
+
+    while (fgets(buf, sizeof(buf), file)) {
+        if (sscanf(buf, "%s %lx %lx %d %d %d %d %lx", iface, &dest, &gw, &x[0], &x[1], &x[2], &x[3], &msk) == 8) {
+            strcpy(rt.iface, iface);
+            rt.destination = dest;
+            rt.gateway = gw;
+            rt.mask = msk;
+            entries.push_back(rt);
+//            printf("%s %s ", iface, inet_ntoa(pop(dest)));
+//            printf("%s ", inet_ntoa(pop(gw)));
+//            printf("%s \n", inet_ntoa(pop(msk)));
+        }
+    }
+    fclose(file);
+    return entries;
 }

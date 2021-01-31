@@ -25,6 +25,9 @@
  */
 
 #include "NewChannelHandler.hh"
+
+#include <Profiler.hh>
+
 #include "../ChannelScheduler/SchedulerInterface.hh"
 
 namespace channelHandler{
@@ -53,6 +56,7 @@ NewChannelHandler::~NewChannelHandler() {
 }
 
 appSInt NewChannelHandler::sendPacket(Packet* pkt) {
+    START_PACKET_PROFILER_CLOCK(pkt)
     sendPacketLock.lock();
     if(closed){
         sendPacketLock.unlock();
@@ -77,12 +81,13 @@ appSInt NewChannelHandler::sendPacket(Packet* pkt) {
     {
         appInt16 x = senderBuffer.maxPacket - senderBuffer.lastAcked;
         if(x >= (APP_INT16_CNT/2)){
-            LOGI("No more space left: cwnd:%d", int(cwnd));
+            LOGE("No more space left at chid: %d cwnd:%d", id(), int(cwnd));
             sendPacketLock.unlock();
 //            packetLock.unlock();
             return -1;
         }
         addBuffer(pkt);
+        sendNew(1); //It will not send it anyway if cwnd does not permit //TODO need to verify properly
     }
     sendPacketLock.unlock();
     return 0;
@@ -115,10 +120,14 @@ Packet* NewChannelHandler::getUndeliveredPackets() {
             getPacketPool().freePacket(pkt);
             continue;
         }
+        STOP_PACKET_PROFILER_CLOCK(pkt)
+        START_PACKET_PROFILER_CLOCK(pkt)
         pktQ.addToQueue(pkt);
     }
     undeliveredPktLock.unlock();
-    return pktQ.getAllFromQueue();
+    auto temp = pktQ.getAllFromQueue();
+    STOP_PACKET_PROFILER_CLOCK_ALL(temp);
+    return temp;
 }
 
 void NewChannelHandler::markDeadChannel() {
@@ -143,15 +152,20 @@ appInt NewChannelHandler::sendNext(appInt16 cnt) {
 }
 
 appSInt NewChannelHandler::recv(Packet* pkt) {
+//    auto acks = ackRecvQueue.getQueueSize();
+//    auto pkts = dataRecvQueue.getQueueSize();
+    PROFILE_SCOPED
     if(pkt->header.flag&FLAG_ACK){
         pkt->recvTS = getTime().getMicro();
         auto newPkt = getPacketPool().getNewPacketWithData();
         newPkt->cloneWithoutData(pkt);
+        START_PACKET_PROFILER_CLOCK(newPkt)
         ackRecvQueue.addToQueue(newPkt);
-        if(senderBuffer.buf[pkt->header.seqNo].pktSent_){
-            senderBuffer.buf[pkt->header.seqNo].ackRcvd_ = 1;
+        if(senderBuffer.buf[pkt->header.origAckNo].pktSent_){ // just to a avoid retransmittion of received packet
+            senderBuffer.buf[pkt->header.origAckNo].ackRcvd_ = 1;
         }
         waitForPacket.notify();
+//        acks++;
     }
     if(pkt->header.flag&FLAG_DAT){
         auto newPkt = getPacketPool().getNewPacketWithData();
@@ -160,9 +174,12 @@ appSInt NewChannelHandler::recv(Packet* pkt) {
         newPkt->data = pkt->data;
         pkt->data = ptr;
         pkt->len = 0;
+        START_PACKET_PROFILER_CLOCK(newPkt)
         dataRecvQueue.addToQueue(newPkt);
         waitForPacket.notify();
+//        pkts++;
     }
+//    printf("%d, %d\n", ackRecvQueue.getQueueSize(), dataRecvQueue.getQueueSize());
     pkt->processed = FALSE;
     pkt->accepted = FALSE;
 //    validatePacket(pkt);
@@ -187,8 +204,10 @@ void NewChannelHandler::run() {
 }
 
 appInt NewChannelHandler::pktRecv() {
+    PROFILE_SCOPED
     Packet *pkt = NULL;
     auto packets = dataRecvQueue.getAllFromQueue();
+    STOP_PACKET_PROFILER_CLOCK_ALL(packets)
     while(packets){
         pkt = packets;
         packets = (Packet *)packets->next;
@@ -247,21 +266,23 @@ appInt NewChannelHandler::pktRecv(Packet* pkt) {
 }
 
 appInt NewChannelHandler::ackRecv() {
+    PROFILE_SCOPED
     appInt16 maxAck = senderBuffer.lastAcked;
     auto packets = ackRecvQueue.getAllFromQueue();
+    STOP_PACKET_PROFILER_CLOCK_ALL(packets)
+    appInt16 normalisedMaxAckNo = maxAck - senderBuffer.lastAcked;
     for(Packet *pkt = packets; pkt; pkt = (Packet*)pkt->next){
         appInt16 normalisedAckNo = pkt->header.ackNo - senderBuffer.lastAcked;
 
-        appInt16 normalisedMaxAckNo = maxAck - senderBuffer.lastAcked;
-
         if(normalisedAckNo > normalisedMaxAckNo){
             maxAck = pkt->header.ackNo;
+            normalisedMaxAckNo = normalisedAckNo;
         }
     }
 
     sendPacketLock.lock();
     auto startedWith = senderBuffer.lastAcked;
-    appInt16 normalisedMaxAckNo = maxAck - senderBuffer.lastAcked;
+//    appInt16 normalisedMaxAckNo = maxAck - senderBuffer.lastAcked;
     while(packets){
         auto pkt = packets;
         packets = (Packet *)packets->next;
@@ -271,6 +292,9 @@ appInt NewChannelHandler::ackRecv() {
         }
         else if(normalisedOrigAckNo > normalisedMaxAckNo){
             ackRecv(pkt);
+        }
+        else{
+            LOGI("No processing ack: %d, orig:%d, chid: %d", pkt->header.ackNo, pkt->header.origAckNo, id());
         }
         getPacketPool().freePacket(pkt);
     }
@@ -441,7 +465,7 @@ appInt NewChannelHandler::ackRecv(Packet* pkt) {
 
 appInt NewChannelHandler::timeoutEvent(appTs time) {
     sendPacketLock.lock();
-    if(closed or deadChannel){
+    if((shutDownRecv and shutDownSent and shutDownSentRecv) or deadChannel){
         sendPacketLock.unlock();
         return 0;
     }
@@ -458,19 +482,27 @@ appInt NewChannelHandler::timeoutEvent(appTs time) {
         cnt ++;
         if(lastsend != 0 and timeout <= time_ms)// and (cnt <= cwnd/2 or cnt <= 1))
         {
-            if(senderBuffer.buf[expectedSeq].ackRcvd_)
+            if(senderBuffer.buf[expectedSeq].ackRcvd_){
+                senderBuffer.restartTimer(expectedSeq, time_ms); // ack is received, but not yet processed.
+                tmp = senderBuffer.timerList.begin();
                 continue;
+            }
+            auto pkt = senderBuffer[expectedSeq];
+            if(pkt.retryCnt_ > 2 and (pkt.pkt_->header.flag&FLAG_CHF)) { // waited for long enough
+                shutDownSentRecv = TRUE;
+                shutDownLock.notify();
+            }
             if(expectedSeq == 0 and senderBuffer[expectedSeq].retryCnt_ > 2){
                 LOGI("Channel dead: %d", id());
                 deadChannel = TRUE;
                 auto scheduler = dynamic_cast<scheduler::SchedulerInterface *>(parent);
                 if(!scheduler){
                     LOGE("Invalid Scheduler");
-                    return 0;
+                    return 0; // TODO error
                 }
-                scheduler->notifyDeadChannel(id());
                 chStopThread = TRUE;
-                waitForPacket.wait();
+                scheduler->notifyDeadChannel(id());
+                waitForPacket.notify();
                 break;
                 APP_ASSERT(0);
                 auto worker =  parent->getWorker(BaseReliableObj::STREAM_COMMON_WORKER);
@@ -639,6 +671,17 @@ void NewChannelHandler::updateCwnd(cwnd_update_type type, float value) {
         APP_ASSERT(ifcSch);
         ifcSch->readyToSend(id(), increament);
     }
+}
+
+bool NewChannelHandler::spaceInCwnd() {
+    if(deadChannel || closed || !started){
+        return false;
+    }
+    appInt16 wnd, pktcnt;
+    wnd = (appInt16)(cwnd + 0.5);
+    pktcnt = senderBuffer.maxPacket - senderBuffer.lastAcked;
+    auto ret = (pktcnt < wnd);
+    return ret;
 }
 
 } //namespace channelHandler

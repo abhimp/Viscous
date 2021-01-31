@@ -69,7 +69,8 @@ void ClientConnection::handShake1(){
     Packet *pkt = getPacketPool().getNewPacketWithData();
     pkt->header.fingerPrint = EMPTY_FINGER_PRINT;
     pkt->header.flag = FLAG_SYN;
-    pkt->header.ifcsrc = ifcMon->getPrimaryInterfaceId();
+//    pkt->header.ifcsrc = ifcMon->getPrimaryInterfaceId();
+    pkt->header.ifcsrc = ifcMon->getSuitableInterfaceId(remoteAddr.sin_addr.s_addr);
 
     TempClientNonce nonce = {remoteAddr.sin_addr.s_addr, remoteAddr.sin_port, localAddr.sin_port};
     auto nonceHeader = GET_OPTIONAL_PACKET_HEADER_TYPE_NONCE;
@@ -91,7 +92,8 @@ void ClientConnection::handShake2(Packet *rcvPkt, sockaddr_in &srcAdr){
     connectedMux->setFingerPrint(fingerPrint);
     pkt->header.fingerPrint = fingerPrint;
     pkt->header.flag = FLAG_ACK;
-    auto primaryInterfaceId = ifcMon->getPrimaryInterfaceId();
+//    auto primaryInterfaceId = ifcMon->getPrimaryInterfaceId();
+    auto primaryInterfaceId = ifcMon->getSuitableInterfaceId(remoteAddr.sin_addr.s_addr);
     pkt->header.ifcsrc = primaryInterfaceId;
     pkt->header.ifcdst = rcvPkt->header.ifcsrc;
     APP_ASSERT(rcvPkt->header.ifcsrc);
@@ -210,7 +212,7 @@ void ClientConnection::close1() {
     Packet *pkt = getPacketPool().getNewPacket();
     pkt->header.fingerPrint = fingerPrint;
     pkt->header.flag = FLAG_CFN;
-    auto primaryInterfaceId = ifcMon->getPrimaryInterfaceId();
+    auto primaryInterfaceId = ifcMon->getSuitableInterfaceId(remoteAddr.sin_addr.s_addr);
     (*ifcMon)[primaryInterfaceId]->sendPkt(pkt, remoteAddr.sin_addr, remoteAddr.sin_port);
     getPacketPool().freePacket(pkt);
 }
@@ -219,7 +221,7 @@ void ClientConnection::close2() {
     Packet *pkt = getPacketPool().getNewPacket();
     pkt->header.fingerPrint = fingerPrint;
     pkt->header.flag = FLAG_ACK;
-    auto primaryInterfaceId = ifcMon->getPrimaryInterfaceId();
+    auto primaryInterfaceId = ifcMon->getSuitableInterfaceId(remoteAddr.sin_addr.s_addr);
     (*ifcMon)[primaryInterfaceId]->sendPkt(pkt, remoteAddr.sin_addr, remoteAddr.sin_port);
     getPacketPool().freePacket(pkt);
     waitToClose.notify();
@@ -297,8 +299,9 @@ appInt ClientConnection::timeoutEvent(appTs time) {
                 return 0;
             }
             else{
+                LOGE("Some error");
                 sem_post(&waitToConnect);
-                pthread_exit(NULL);
+//                pthread_exit(NULL);
                 return 0;
             }
         }
@@ -340,6 +343,7 @@ void ClientConnectionThread::run() {
         if(stop)
             break;
         auto pkt = recvPktQueue.getFromQueue();
+        STOP_PACKET_PROFILER_CLOCK(pkt)
         if(!pkt)
             continue;
 
@@ -355,6 +359,7 @@ void ClientConnectionThread::run() {
 appSInt ClientConnectionThread::recvPacket(Packet* pkt) {
     if(stop)
         return -1;
+    START_PACKET_PROFILER_CLOCK(pkt)
     recvPktQueue.addToQueue(pkt);
     recvPktQueueLock.notify();
     return 0;

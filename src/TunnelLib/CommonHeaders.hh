@@ -212,10 +212,13 @@ class TimeOutProducer{
 public:
     TimeOutProducer():listner(){};
     void timeoutEvent(appTs time);
-    void attach(TimeoutObserver *);
-    void detach(TimeoutObserver *);
+    void attach(std::shared_ptr<TimeoutObserver> );
+    void detach(std::shared_ptr<TimeoutObserver> );
 private:
-    std::set<TimeoutObserver *> listner;
+//    std::set<TimeoutObserver *> listner;
+    std::set<std::shared_ptr<TimeoutObserver> > remove;
+    std::set<std::shared_ptr<TimeoutObserver> > added;
+    std::set<std::shared_ptr<TimeoutObserver> > listner;
     util::AppMutex accessMutex;
 };
 #endif /* TUNNELLIB_COMMONHEADERS_HPP_ */

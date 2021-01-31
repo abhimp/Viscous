@@ -136,24 +136,33 @@ pthread_mutex_t BaseReliableObj::newIdLock = PTHREAD_MUTEX_INITIALIZER;
 std::set<appInt> BaseReliableObj::childIdFreePool;
 std::set<appInt> BaseReliableObj::childIdPool;
 
-void TimeOutProducer::attach(TimeoutObserver *rm){
+void TimeOutProducer::attach(std::shared_ptr<TimeoutObserver> rm){
     accessMutex.lock();
-    this->listner.insert(rm);
+    if(!hasKey(listner, rm) and !hasKey(remove, rm))
+        this->added.insert(rm);
     accessMutex.unlock();
 }
 
-void TimeOutProducer::detach(TimeoutObserver *rm){
+void TimeOutProducer::detach(std::shared_ptr<TimeoutObserver> rm){
     accessMutex.lock();
-    if(hasKey(listner, rm))
-        listner.erase(rm);
+    if(hasKey(listner, rm) and !hasKey(added, rm))
+        remove.insert(rm);
     accessMutex.unlock();
 }
 
 void TimeOutProducer::timeoutEvent(appTs time){
     accessMutex.lock();
-    for(TimeoutObserver *rm : listner){
+    for(auto x: remove){
+        listner.erase(x);
+    }
+    for(auto x:added){
+        listner.insert(x);
+    }
+    remove.clear();
+    added.clear();
+    accessMutex.unlock();
+    for(auto rm : listner){
         rm->timeoutEvent(time);
     }
-    accessMutex.unlock();
 }
 

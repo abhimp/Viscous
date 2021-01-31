@@ -40,6 +40,13 @@ public:
     virtual ~NetworkEventListner() {};
 };
 
+struct RouteEntry{
+    in_addr_t destination;
+    in_addr_t gateway;
+    in_addr_t mask;
+    char iface[IF_NAMESIZE];
+};
+
 class InterfaceMonitor : public util::AppThread {
 public:
     InterfaceMonitor(appInt localPort);
@@ -55,14 +62,18 @@ public:
     inline SendThroughInterface *operator [](appInt8 ifcId);
     inline SendThroughInterface *get(appInt8 ifcId);
     appInt8 getPrimaryInterfaceId();
+    appInt8 getSuitableInterfaceId(in_addr_t destinationIp);
+    appBool isReachable(appInt8 ifcLocId, in_addr_t remIp);
 private:
     pthread_t start(void *){return 0;};
+    std::vector<RouteEntry> populateRouteEntries();
     std::set<NetworkEventListner *> children;
     appInt localPort;
     SendThroughInterface *interfaceSender[INTERFACE_SENDER_CNT]; //0 will never used
     std::map<appInt32, appInt8> ip2InterfaceIdMap;
     appInt8 nextInterfaceId;
 
+//    std::vector<RouteEntry> routeEntries;
     appInt8 getNextInterfaceId();
 };
 

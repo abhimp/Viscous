@@ -35,3 +35,4 @@
 /html/
 /latex/
 .settings/language.settings.xml
+.DS_Store

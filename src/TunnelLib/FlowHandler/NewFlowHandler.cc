@@ -85,10 +85,12 @@ appSInt NewFlowHandler::recvPacketFrom(Packet* pkt, RecvSendFlags& flags) {
 
     readLock.lock();
     rcvPktQueue[seqNo] = pkt;
+    START_PACKET_PROFILER_CLOCK(pkt)
     appBool closeNotify = FALSE;
     for(appInt16 nextAvailable = availableUpTo + 1; rcvPktQueue[nextAvailable]; nextAvailable++){
         availableUpTo++;
         auto npkt = rcvPktQueue[availableUpTo];
+        STOP_PACKET_PROFILER_CLOCK(npkt)
         if(npkt->header.flag&FLAG_FFN){
             if(closeInitiated){ // if close initiated by this end then this packet is the acknowledgment to the close request.
                 closed = TRUE;
@@ -110,6 +112,7 @@ appSInt NewFlowHandler::recvPacketFrom(Packet* pkt, RecvSendFlags& flags) {
 
 appSInt NewFlowHandler::readData(appFlowIdType flowId, appByte* data,
         appInt size) {
+    PROFILE_SCOPED
     if(!data or !size or size < MAX_PACKET_SENT_DATA_SIZE){
         return -ERROR_INVALID_READ_SIZE;
     }
@@ -156,6 +159,7 @@ appSInt NewFlowHandler::sendData(appFlowIdType flowId, appByte* data,
     appSInt count = 0;
     while(dataLen >= MAX_PACKET_SENT_DATA_SIZE){
         Packet *pkt = getPacketPool().getNewPacketWithData();
+        PROFILE_PERPACKET_WAIT_START(pkt);
         memcpy(pkt->data, data, MAX_PACKET_SENT_DATA_SIZE);
         data += MAX_PACKET_SENT_DATA_SIZE;
         dataLen -= MAX_PACKET_SENT_DATA_SIZE;
@@ -168,6 +172,7 @@ appSInt NewFlowHandler::sendData(appFlowIdType flowId, appByte* data,
     }
     if(dataLen <= MAX_PACKET_SENT_DATA_SIZE && dataLen > 0){
         Packet *pkt = getPacketPool().getNewPacketWithData();
+        PROFILE_PERPACKET_WAIT_START(pkt);
         memcpy(pkt->data, data, dataLen);
         pkt->len = dataLen;
         pkt->header.flowSeqNo = getNextSeqNo();

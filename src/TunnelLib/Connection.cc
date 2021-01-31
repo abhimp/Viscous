@@ -28,12 +28,15 @@
 
 #include "PacketPool.hh"
 
+appSInt globalUDPSocketFD = 0;
+
 inline appInt Connection::getLocalPort(){
     return ntohs(localAddr.sin_port);
 }
 
 appStatus Connection::startClient(appInt localPort, appByte *localIp){
     socketFd = app_udp_listener_str(localPort, (char *)localIp);
+//    globalUDPSocketFD = socketFd;
     localAddrLen = sizeof(localAddr);
     getsockname(socketFd, (struct sockaddr*)&localAddr, &localAddrLen);
     LOGI("waiting for packet at %s:%d\n", inet_ntoa(localAddr.sin_addr), ntohs(localAddr.sin_port));
@@ -49,6 +52,7 @@ appStatus Connection::startClient(appInt localPort, appByte *localIp){
 appStatus Connection::startServer(appInt localPort, appByte *localIp){
     allowNewCon = TRUE;
     socketFd = app_udp_listener_str(localPort, (char *)localIp);
+//    globalUDPSocketFD = socketFd;
     localAddrLen = sizeof(localAddr);
     getsockname(socketFd, (struct sockaddr*)&localAddr, &localAddrLen);
     LOGI("waiting for packet at port %s:%d\n", inet_ntoa(localAddr.sin_addr), ntohs(localAddr.sin_port));
@@ -83,7 +87,7 @@ void Connection::listen() {
         }
         pkt->src_addr = src_addr;
         pkt->dest_addr = dest_addr;
-        LOGI("pkt recvd: flowid:%d, seq:%d ack%d", pkt->header.flowId, pkt->header.seqNo, pkt->header.ackNo);
+        LOGI("pkt recvd: flowid:%d, fseq:%d, seq:%d ack:%d, sifc:%d, difc:%d", pkt->header.flowId, pkt->header.flowSeqNo, pkt->header.seqNo, pkt->header.ackNo, pkt->header.ifcsrc, pkt->header.ifcdst);
         RecvSendFlags flag = DEFALT_RECVSENDFLAG_VALUE;
         parent->recvPacketFrom(pkt, flag);
     }

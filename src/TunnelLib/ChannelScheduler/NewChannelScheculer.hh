@@ -68,12 +68,15 @@ public:
     virtual void interfaceAdded(appInt8 ifcLoc);
     virtual void interfaceRemoved(appInt8 ifcLoc);
     virtual void notifyDeadChannel(appInt8 chId);
+    virtual appSInt sendNextPacketUsingCh(appInt8 chId);
 
 private:
     void addChannel(appInt8 ifcLoc, appInt8 ifcRem);
-    void schedule();
+    appSInt schedule();
     RemoteAddr *remoteAddresses[BASIC_CHANNEL_HANDLER_REMOTE_ADDRESS_COUNT];
-    channelHandler::ChannelHandler *channelHandlers[BASIC_CHANNEL_HANDLER_CHANNEL_COUNT]; // ease of access
+//    channelHandler::ChannelHandler *channelHandlers[BASIC_CHANNEL_HANDLER_CHANNEL_COUNT]; // ease of access
+    std::shared_ptr<channelHandler::ChannelHandler> channelHandlers[BASIC_CHANNEL_HANDLER_CHANNEL_COUNT];
+    std::set<appInt8> activeChannelHandlesList;
     appInt readyToDeliverPacket[BASIC_CHANNEL_HANDLER_CHANNEL_COUNT];
     util::AppLLQueue<Packet> outgoingPacketQueue;
     util::AppLLQueue<Packet> undeliveredPacketQueue;
@@ -86,6 +89,7 @@ private:
     util::AppSemaphore waitForToken, waitForNewPacket;
     appBool waitToClose;
     Packet *controlPkt;
+    util::AppLLQueue<Packet> closePktsQueue;
     util::AppMutex controlPktLock;
     appInt64 inPkt, outPkt;
 //    InterfaceMonitor *ifcMon;

@@ -90,5 +90,7 @@ std::set<InterfaceInfo> getInterfaceInfos(void);
 std::set<InterfaceInfo> getInterfaceInfos(void);
 std::set<InterfaceInfo> getInterfaceAndIp(void);
 interfaceIPGWMap getAllGatewayAndIfaceUsingIfHack();
+
+
 }
 #endif /* SEARCHMAC_H_ */

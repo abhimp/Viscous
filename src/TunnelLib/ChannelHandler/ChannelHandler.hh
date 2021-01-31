@@ -42,8 +42,10 @@ public:
     virtual appSInt sendPacket(Packet *pkt);
     virtual appSInt recv(Packet *pkt);
     virtual bool haveCell();
+    virtual bool spaceInCwnd(){APP_ASSERT(0 and "Not implemented"); return false;};
     virtual appInt &id();
     virtual appInt timeoutEvent(appTs time);
+    virtual appSInt64 getRTT() {APP_ASSERT(0 and "Not implemented"); return 0;}
 //    virtual appTs getTime(){ appTime x; appGetSysTime(&x); appTs y(0,0); y.nsec() = x.tv_nsec; y.sec() = x.tv_sec; return y;}
 //    virtual void setIfcId(appInt8 ifcSrc, appInt8 ifcDst);
     virtual void waitToMoreSpace() = 0;
